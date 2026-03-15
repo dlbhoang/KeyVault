@@ -37,7 +37,6 @@ export function AdminLogin({ onSuccess, onBack }) {
   const { adminLogin, loading, error, clearError } = useAuthStore()
   const [u, setU] = useState('')
   const [p, setP] = useState('')
-  const isDirectAccess = window.location.pathname === '/admin'
 
   useEffect(() => { clearError() }, [])
 
@@ -65,11 +64,9 @@ export function AdminLogin({ onSuccess, onBack }) {
           {' / '}password: <code style={{ fontFamily:'var(--f-mono)', color:'var(--indigo-d)', background:'var(--indigo-l)', padding:'1px 5px', borderRadius:4 }}>admin123</code>
         </div>
 
-        {!isDirectAccess && (
-          <button onClick={onBack} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center', marginTop:4 }}>
-            <ArrowLeft size={13}/> Quay lại trang chủ
-          </button>
-        )}
+        <button onClick={onBack} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center', marginTop:4 }}>
+          <ArrowLeft size={13}/> Quay lại trang chủ
+        </button>
       </div>
     </AuthCard>
   )

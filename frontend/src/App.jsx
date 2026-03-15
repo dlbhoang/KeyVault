@@ -6,17 +6,17 @@ import { AdminLogin, UserLogin, UserRegister, ForgotPassword, ResetPassword } fr
 import AdminLayout from './pages/AdminLayout.jsx'
 import UserPortal from './pages/UserPortal.jsx'
 
-// Routes: landing | adminLogin | userLogin | userRegister | forgotPassword | resetPassword | adminPanel | userPortal
-
 export default function App() {
   const { role, token, init } = useAuthStore()
   const [view, setView] = useState('landing')
   const [resetToken, setResetToken] = useState('')
+  const [isAdminRoute, setIsAdminRoute] = useState(false)
 
   useEffect(() => {
-    // Check URL path for admin route
     const path = window.location.pathname
+
     if (path === '/admin' || path.startsWith('/admin/')) {
+      setIsAdminRoute(true)
       setView('adminLogin')
       return
     }
@@ -28,38 +28,80 @@ export default function App() {
     })
   }, [])
 
-  // If already authenticated, route directly (skip when on /admin path)
   useEffect(() => {
-    const path = window.location.pathname
-    const isAdminPath = path === '/admin' || path.startsWith('/admin/')
-    if (isAdminPath) return
+    if (isAdminRoute) return
 
     if (!token) {
       setView('landing')
       return
     }
+
     if (role === 'admin') setView('adminPanel')
     else if (role === 'user') setView('userPortal')
-  }, [role, token])
+  }, [role, token, isAdminRoute])
 
   const go = (v, extra) => {
     if (extra?.resetToken) setResetToken(extra.resetToken)
     setView(v)
   }
 
-  const transition = { initial:{opacity:0,y:12}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-12}, transition:{duration:.2} }
+  const transition = {
+    initial: { opacity:0, y:12 },
+    animate: { opacity:1, y:0 },
+    exit: { opacity:0, y:-12 },
+    transition: { duration:.2 }
+  }
 
   return (
     <AnimatePresence mode="wait">
       <motion.div key={view} {...transition} style={{ minHeight:'100vh' }}>
-        {view === 'landing'       && <Landing onUserLogin={()=>go('userLogin')} onUserRegister={()=>go('userRegister')} />}
-        {view === 'adminLogin'    && <AdminLogin onSuccess={()=>go('adminPanel')} onBack={()=>go('landing')} />}
-        {view === 'userLogin'     && <UserLogin  onSuccess={()=>go('userPortal')} onRegister={()=>go('userRegister')} onForgot={()=>go('forgotPassword')} onBack={()=>go('landing')} />}
-        {view === 'userRegister'  && <UserRegister onSuccess={()=>go('userPortal')} onLogin={()=>go('userLogin')} onBack={()=>go('landing')} />}
-        {view === 'forgotPassword'&& <ForgotPassword onBack={()=>go('userLogin')} />}
-        {view === 'resetPassword' && <ResetPassword token={resetToken} onSuccess={()=>go('userLogin')} onBack={()=>go('userLogin')} />}
-        {view === 'adminPanel'    && <AdminLayout />}
-        {view === 'userPortal'    && <UserPortal />}
+
+        {view === 'landing' && (
+          <Landing
+            onUserLogin={()=>go('userLogin')}
+            onUserRegister={()=>go('userRegister')}
+          />
+        )}
+
+        {view === 'adminLogin' && (
+          <AdminLogin
+            onSuccess={()=>go('adminPanel')}
+            onBack={()=>go('landing')}
+          />
+        )}
+
+        {view === 'userLogin' && (
+          <UserLogin
+            onSuccess={()=>go('userPortal')}
+            onRegister={()=>go('userRegister')}
+            onForgot={()=>go('forgotPassword')}
+            onBack={()=>go('landing')}
+          />
+        )}
+
+        {view === 'userRegister' && (
+          <UserRegister
+            onSuccess={()=>go('userPortal')}
+            onLogin={()=>go('userLogin')}
+            onBack={()=>go('landing')}
+          />
+        )}
+
+        {view === 'forgotPassword' && (
+          <ForgotPassword onBack={()=>go('userLogin')} />
+        )}
+
+        {view === 'resetPassword' && (
+          <ResetPassword
+            token={resetToken}
+            onSuccess={()=>go('userLogin')}
+            onBack={()=>go('userLogin')}
+          />
+        )}
+
+        {view === 'adminPanel' && <AdminLayout />}
+        {view === 'userPortal' && <UserPortal />}
+
       </motion.div>
     </AnimatePresence>
   )
