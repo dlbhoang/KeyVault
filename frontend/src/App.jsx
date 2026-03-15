@@ -28,8 +28,12 @@ export default function App() {
     })
   }, [])
 
-  // If already authenticated, route directly
+  // If already authenticated, route directly (skip when on /admin path)
   useEffect(() => {
+    const path = window.location.pathname
+    const isAdminPath = path === '/admin' || path.startsWith('/admin/')
+    if (isAdminPath) return
+
     if (!token) {
       setView('landing')
       return
