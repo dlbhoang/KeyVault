@@ -66,7 +66,7 @@ export default function Landing({ onUserLogin, onUserRegister }) {
       </div>
 
       <footer style={{ textAlign:'center', padding:'20px', fontSize:12, color:'var(--t3)', borderTop:'1.5px solid var(--b1)', background:'rgba(255,255,255,.5)' }}>
-        © 2025 KeyVault Software · v2.0
+        ©  KeyVault Software 
       </footer>
     </div>
   )
