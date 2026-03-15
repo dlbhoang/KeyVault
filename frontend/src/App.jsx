@@ -14,6 +14,13 @@ export default function App() {
   const [resetToken, setResetToken] = useState('')
 
   useEffect(() => {
+    // Check URL path for admin route
+    const path = window.location.pathname
+    if (path === '/admin') {
+      setView('adminLogin')
+      return
+    }
+
     init().then(() => {
       const r = localStorage.getItem('kv_role')
       if (r === 'admin') setView('adminPanel')
