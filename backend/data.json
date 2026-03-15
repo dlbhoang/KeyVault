@@ -1,0 +1,112 @@
+{
+  "admins": [
+    {
+      "id": "admin-1",
+      "username": "admin",
+      "password": "$2a$10$J1tSlMlraYPFFIT26PDprO2q13SvIO/hteNnIpWgybptivQ90AJeG",
+      "created_at": "2026-03-15T20:10:21.950Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "bdb7400e-a262-4ca5-aa8a-feb521fe826c",
+      "name": "Đặng Văn Duy",
+      "email": "admin@email.com",
+      "password": "$2a$10$WpUljd8Ru0ylmhJRySFlRugIYaFllKrXrgh3AJb4Roo.07CZdZWC.",
+      "created_at": "2026-03-15T20:11:05.683Z"
+    }
+  ],
+  "keys": [
+    {
+      "id": "b18fca99-18b8-46c3-a800-dbb1e323d7b8",
+      "key_code": "KV-AXDUSZ-GM0REH-UWO3SN-H8CGJN",
+      "plan": "full6m",
+      "email": "alice@demo.vn",
+      "name": "Alice Trần",
+      "modules": [
+        "analytics",
+        "reports",
+        "crm",
+        "inventory",
+        "hr",
+        "finance",
+        "ai",
+        "api"
+      ],
+      "note": "Demo trial",
+      "expires_at": "2026-09-14T03:10:21+07:00",
+      "activated": true,
+      "revoked": false,
+      "user_id": null,
+      "created_at": "2026-03-15T20:10:21.955Z"
+    },
+    {
+      "id": "15a292b3-f2d7-4ddb-9f26-3e5292b42c4d",
+      "key_code": "KV-YO7L0H-JZTWSR-6IEMB0-2J2HUV",
+      "plan": "desktop1y",
+      "email": "bob@demo.io",
+      "name": "Bob Nguyễn",
+      "modules": [
+        "analytics",
+        "reports",
+        "api"
+      ],
+      "note": "",
+      "expires_at": "2027-03-16T03:10:21+07:00",
+      "activated": true,
+      "revoked": false,
+      "user_id": null,
+      "created_at": "2026-03-15T20:10:21.955Z"
+    },
+    {
+      "id": "c14c7b47-9b8d-45e0-9c70-3dda8afdb24c",
+      "key_code": "KV-BWGKZ5-0WZ0NE-JAB72C-UI4DMG",
+      "plan": "full1y",
+      "email": "",
+      "name": "",
+      "modules": [
+        "analytics",
+        "reports",
+        "crm",
+        "inventory",
+        "hr",
+        "finance",
+        "ai",
+        "api"
+      ],
+      "note": "Chờ gán user",
+      "expires_at": "2027-03-16T03:10:21+07:00",
+      "activated": false,
+      "revoked": true,
+      "user_id": null,
+      "created_at": "2026-03-15T20:10:21.955Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": "1773605505670",
+      "message": "Admin thu hồi key KV-BWGKZ5-0WZ0…",
+      "type": "warn",
+      "created_at": "2026-03-15T20:11:45.670Z"
+    },
+    {
+      "id": "1773605493463",
+      "message": "Admin \"admin\" đăng nhập",
+      "type": "info",
+      "created_at": "2026-03-15T20:11:33.463Z"
+    },
+    {
+      "id": "1773605465683",
+      "message": "User mới đăng ký: admin@email.com",
+      "type": "success",
+      "created_at": "2026-03-15T20:11:05.683Z"
+    },
+    {
+      "id": "1773605421955",
+      "message": "Khởi động: seed dữ liệu mẫu",
+      "type": "info",
+      "created_at": "2026-03-15T20:10:21.955Z"
+    }
+  ],
+  "resetTokens": []
+}
