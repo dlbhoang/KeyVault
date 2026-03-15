@@ -30,8 +30,12 @@ export default function App() {
 
   // If already authenticated, route directly
   useEffect(() => {
-    if (role === 'admin' && token) setView('adminPanel')
-    else if (role === 'user' && token) setView('userPortal')
+    if (!token) {
+      setView('landing')
+      return
+    }
+    if (role === 'admin') setView('adminPanel')
+    else if (role === 'user') setView('userPortal')
   }, [role, token])
 
   const go = (v, extra) => {
