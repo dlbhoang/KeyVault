@@ -191,3 +191,5 @@ app.listen(PORT, () => {
   console.log(`\n🔑  KeyVault API  →  http://localhost:${PORT}`)
   console.log(`    Admin: admin / admin123\n`)
 })
+
+module.exports = app

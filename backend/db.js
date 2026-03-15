@@ -1,6 +1,6 @@
 const fs   = require('fs')
 const path = require('path')
-const DB_FILE = path.join(__dirname, 'data.json')
+const DB_FILE = path.join(process.env.VERCEL ? '/tmp' : __dirname, 'data.json')
 const DEFAULT = { admins:[], users:[], keys:[], logs:[], resetTokens:[] }
 
 let _db = (() => {
