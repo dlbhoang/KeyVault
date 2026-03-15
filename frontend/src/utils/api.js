@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const BASE = import.meta.env.PROD
   ? '/api'
-  : 'http://localhost:3001/api'
+  : 'https://key-vault-git-main-dlbhoangs-projects.vercel.app//api'
 
 const api = axios.create({ baseURL: BASE })
 
