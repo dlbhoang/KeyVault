@@ -185,7 +185,20 @@ app.get('/api/admin/stats', requireAdmin, (_,res) => {
 })
 app.get('/api/admin/logs',    requireAdmin, (_,res) => res.json(db().logs))
 app.delete('/api/admin/logs', requireAdmin, (_,res) => {db().logs=[];commit();res.json({success:true})})
-app.get('/api/health', (_,res) => res.json({status:'ok',time:new Date().toISOString()}))
+app.get('/api/health', (_,res) => {
+  const d = db()
+  res.json({
+    status: 'ok',
+    time: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: {
+      users: d.users.length,
+      keys: d.keys.length,
+      logs: d.logs.length
+    },
+    version: '1.0.0'
+  })
+})
 
 app.listen(PORT, () => {
   console.log(`\n🔑  KeyVault API  →  http://localhost:${PORT}`)
