@@ -49,4 +49,9 @@ export const adminApi = {
   clearLogs:  ()    => api.delete('/admin/logs').then(r => r.data),
 }
 
+// ── HEALTH ─────────────────────────────────────────────────────────────────
+export const healthApi = {
+  check: () => api.get('/health').then(r => r.data),
+}
+
 export default api

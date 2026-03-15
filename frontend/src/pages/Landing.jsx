@@ -2,7 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Zap, Users, Key } from 'lucide-react'
 
-export default function Landing({ onAdminLogin, onUserLogin, onUserRegister }) {
+export default function Landing({ onUserLogin, onUserRegister }) {
   const features = [
     { icon:<Key size={20}/>,        title:'License Keys',   desc:'Tạo & phân phối key với mọi loại gói',   color:'var(--indigo)' },
     { icon:<ShieldCheck size={20}/>,title:'Bảo mật cao',    desc:'JWT auth, bcrypt, hết hạn tự động',       color:'var(--emerald)' },
@@ -22,10 +22,6 @@ export default function Landing({ onAdminLogin, onUserLogin, onUserRegister }) {
           <motion.button whileHover={{scale:1.03}} whileTap={{scale:.97}} onClick={onUserLogin}
             style={{ padding:'8px 20px', borderRadius:9, border:'1.5px solid var(--b2)', background:'white', color:'var(--t1)', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'var(--f-sans)' }}>
             Đăng nhập
-          </motion.button>
-          <motion.button whileHover={{scale:1.03,y:-1}} whileTap={{scale:.97}} onClick={onAdminLogin}
-            style={{ padding:'8px 20px', borderRadius:9, border:'none', background:'var(--g-brand)', color:'white', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'var(--f-sans)', boxShadow:'var(--s-indigo)' }}>
-            Admin
           </motion.button>
         </motion.div>
       </nav>
@@ -52,10 +48,6 @@ export default function Landing({ onAdminLogin, onUserLogin, onUserRegister }) {
           <motion.button whileHover={{scale:1.04,y:-2}} whileTap={{scale:.97}} onClick={onUserRegister}
             style={{ padding:'14px 32px', borderRadius:12, border:'none', background:'var(--g-brand)', color:'white', fontWeight:700, fontSize:16, cursor:'pointer', fontFamily:'var(--f-sans)', boxShadow:'var(--s-indigo)', display:'flex', alignItems:'center', gap:8 }}>
             🚀 Bắt đầu miễn phí
-          </motion.button>
-          <motion.button whileHover={{scale:1.04,y:-2}} whileTap={{scale:.97}} onClick={onAdminLogin}
-            style={{ padding:'14px 32px', borderRadius:12, border:'1.5px solid var(--b2)', background:'white', color:'var(--t1)', fontWeight:700, fontSize:16, cursor:'pointer', fontFamily:'var(--f-sans)', boxShadow:'var(--s2)', display:'flex', alignItems:'center', gap:8 }}>
-            ⚙️ Vào Admin Panel
           </motion.button>
         </motion.div>
 

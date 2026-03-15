@@ -37,7 +37,7 @@ export default function App() {
   return (
     <AnimatePresence mode="wait">
       <motion.div key={view} {...transition} style={{ minHeight:'100vh' }}>
-        {view === 'landing'       && <Landing onAdminLogin={()=>go('adminLogin')} onUserLogin={()=>go('userLogin')} onUserRegister={()=>go('userRegister')} />}
+        {view === 'landing'       && <Landing onUserLogin={()=>go('userLogin')} onUserRegister={()=>go('userRegister')} />}
         {view === 'adminLogin'    && <AdminLogin onSuccess={()=>go('adminPanel')} onBack={()=>go('landing')} />}
         {view === 'userLogin'     && <UserLogin  onSuccess={()=>go('userPortal')} onRegister={()=>go('userRegister')} onForgot={()=>go('forgotPassword')} onBack={()=>go('landing')} />}
         {view === 'userRegister'  && <UserRegister onSuccess={()=>go('userPortal')} onLogin={()=>go('userLogin')} onBack={()=>go('landing')} />}
