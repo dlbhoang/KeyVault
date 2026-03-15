@@ -16,7 +16,7 @@ export default function App() {
   useEffect(() => {
     // Check URL path for admin route
     const path = window.location.pathname
-    if (path === '/admin') {
+    if (path === '/admin' || path.startsWith('/admin/')) {
       setView('adminLogin')
       return
     }
