@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://key-vault-nine.vercel.app/api')
+const BASE = 'https://key-vault-2k31vs840-dlbhoangs-projects.vercel.app/api'
 
 const api = axios.create({ baseURL: BASE })
 
