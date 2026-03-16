@@ -1,16 +1,31 @@
 require('dotenv').config()
 const express = require('express')
+const cors = require('cors')
 const bcrypt  = require('bcryptjs')
 const crypto  = require('crypto')
-const { db, commit, addLog, Log } = require('./db')
+const { db, commit, addLog, Log, User, useMongoDB, Key } = require('./db')
 const { sign, requireAdmin, requireUser } = require('./auth')
 const { MODULES, KEY_PLANS, genKeyCode, genId, calcExpiry, keyStatus, daysLeft, buildZip } = require('./keyUtils')
 
 const app  = express()
 const PORT = process.env.PORT || 3001
 
-// CORS handled entirely by Vercel via vercel.json
+// CORS for local development
+app.use(cors({
+  origin: true, // Allow all origins for development
+  credentials: true
+}))
+
 app.use(express.json())
+
+// Simple request logger (helps debug login/network issues)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`)
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log('  body:', req.body)
+  }
+  next()
+})
 
 const enrich = k => ({ ...k, status:keyStatus(k), daysLeft:daysLeft(k.expires_at) })
 
@@ -38,7 +53,15 @@ app.post('/api/auth/register', async (req,res) => {
   const d = await db()
   if (d.users.find(u=>u.email===email.toLowerCase())) return res.status(409).json({error:'Email đã được đăng ký'})
   const u={id:genId(),name:name.trim(),email:email.toLowerCase().trim(),password:bcrypt.hashSync(password,10),created_at:new Date().toISOString()}
-  d.users.push(u); await commit(d)
+  
+  if (useMongoDB) {
+    const user = new User(u)
+    await user.save()
+  } else {
+    d.users.push(u)
+    await commit(d)
+  }
+  
   addLog(`User mới đăng ký: ${email}`,'success')
   res.status(201).json({ token:sign({role:'user',userId:u.id,email:u.email,name:u.name}), user:{id:u.id,name:u.name,email:u.email} })
 })
@@ -60,12 +83,20 @@ app.get('/api/auth/me', requireUser, async (req,res) => {
 
   // Auto-assign pending keys with matching email
   const pendingKeys = d.keys.filter(k => k.email === u.email && !k.user_id && !k.revoked)
-  pendingKeys.forEach(k => {
-    const idx = d.keys.findIndex(x => x.id === k.id)
-    d.keys[idx] = { ...k, user_id: u.id, activated: true }
-  })
   if (pendingKeys.length > 0) {
-    await commit(d)
+    if (useMongoDB) {
+      // Update keys in MongoDB
+      await Promise.all(pendingKeys.map(k => 
+        Key.updateOne({ id: k.id }, { user_id: u.id, activated: true })
+      ))
+    } else {
+      // Update in memory for SQLite
+      pendingKeys.forEach(k => {
+        const idx = d.keys.findIndex(x => x.id === k.id)
+        d.keys[idx] = { ...k, user_id: u.id, activated: true }
+      })
+      await commit(d)
+    }
     addLog(`Tự động gán ${pendingKeys.length} key cho user "${u.email}"`, 'info')
   }
 
@@ -114,7 +145,11 @@ app.post('/api/keys/activate', requireUser, async (req,res) => {
   if (k.user_id&&k.user_id!==req.user.userId) return res.status(400).json({error:'Key này đã gán cho tài khoản khác'})
   if (k.activated && k.user_id === req.user.userId) return res.status(400).json({error:'Key đã được kích hoạt rồi', key: enrich(k), downloadUrl: `/api/user/keys/${k.id}/download`})
   const idx=d.keys.findIndex(x=>x.id===k.id)
-  d.keys[idx]={...k,activated:true,user_id:req.user.userId,email:req.user.email,name:req.user.name}
+  if (useMongoDB) {
+    await Key.updateOne({id: k.id}, {activated: true, user_id: req.user.userId, email: req.user.email, name: req.user.name})
+  } else {
+    d.keys[idx]={...k,activated:true,user_id:req.user.userId,email:req.user.email,name:req.user.name}
+  }
   await commit(d)
   addLog(`User "${req.user.email}" kích hoạt key ${code.slice(0,14)}…`,'success')
   res.json({key:enrich(d.keys[idx]), downloadUrl: `/api/user/keys/${k.id}/download`})
@@ -141,7 +176,13 @@ app.post('/api/admin/keys', requireAdmin, async (req,res) => {
       }
     }
     const k={id:genId(),key_code:genKeyCode(),plan,email:email||'',name:name||'',modules,note:note||'',expires_at:calcExpiry(plan,customDate),activated,revoked:false,user_id,created_at:new Date().toISOString()}
-    d.keys.push(k); created.push(enrich(k))
+    if (useMongoDB) {
+      const newKey = new Key(k)
+      await newKey.save()
+    } else {
+      d.keys.push(k)
+    }
+    created.push(enrich(k))
   }
   await commit(d)
   addLog(`Admin tạo ${count} key [${plan}]${email?` cho ${email}`:''}`, 'success')
@@ -151,7 +192,12 @@ app.post('/api/admin/keys', requireAdmin, async (req,res) => {
 app.patch('/api/admin/keys/:id/revoke', requireAdmin, async (req,res) => {
   const d = await db(); const idx=d.keys.findIndex(k=>k.id===req.params.id)
   if (idx===-1) return res.status(404).json({error:'Không tìm thấy key'})
-  d.keys[idx].revoked=true; await commit(d)
+  if (useMongoDB) {
+    await Key.updateOne({id: req.params.id}, {revoked: true})
+  } else {
+    d.keys[idx].revoked=true
+  }
+  await commit(d)
   addLog(`Admin thu hồi key ${d.keys[idx].key_code.slice(0,14)}…`,'warn')
   res.json({success:true})
 })
@@ -159,7 +205,12 @@ app.patch('/api/admin/keys/:id/revoke', requireAdmin, async (req,res) => {
 app.delete('/api/admin/keys/:id', requireAdmin, async (req,res) => {
   const d = await db(); const k=d.keys.find(x=>x.id===req.params.id)
   if (!k) return res.status(404).json({error:'Không tìm thấy key'})
-  d.keys=d.keys.filter(x=>x.id!==req.params.id); await commit(d)
+  if (useMongoDB) {
+    await Key.deleteOne({id: req.params.id})
+  } else {
+    d.keys=d.keys.filter(x=>x.id!==req.params.id)
+  }
+  await commit(d)
   addLog(`Admin xóa key ${k.key_code.slice(0,14)}…`,'warn')
   res.json({success:true})
 })
