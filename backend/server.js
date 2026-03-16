@@ -53,6 +53,11 @@ app.use(express.json())
 
 const enrich = k => ({ ...k, status:keyStatus(k), daysLeft:daysLeft(k.expires_at) })
 
+// Health check endpoint for CORS testing
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
 // ─── AUTH ──────────────────────────────────────────────────────────────────
 app.post('/api/auth/admin/login', (req,res) => {
   const {username,password}=req.body||{}
