@@ -1,6 +1,5 @@
 require('dotenv').config()
 const express = require('express')
-const cors    = require('cors')
 const bcrypt  = require('bcryptjs')
 const crypto  = require('crypto')
 const { db, commit, addLog } = require('./db')
@@ -10,46 +9,8 @@ const { MODULES, KEY_PLANS, genKeyCode, genId, calcExpiry, keyStatus, daysLeft, 
 const app  = express()
 const PORT = process.env.PORT || 3001
 
-app.use(cors({
-  origin: true, // Allow all origins for Vercel
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}))
-
-// Simple CORS headers for Vercel
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  next();
-});
+// CORS handled entirely by Vercel via vercel.json
 app.use(express.json())
-
-// ─── SEED ──────────────────────────────────────────────────────────────────
-;(() => {
-  const d = db()
-  if (!d.admins.find(a => a.username === 'admin')) {
-    d.admins.push({ id:'admin-1', username:'admin', password:bcrypt.hashSync(process.env.ADMIN_PASSWORD||'admin123',10), created_at:new Date().toISOString() })
-    commit()
-  }
-  if (d.keys.length === 0) {
-    const all = MODULES.map(m=>m.id)
-    d.keys.push(
-      { id:genId(), key_code:genKeyCode(), plan:'full6m',    email:'alice@demo.vn', name:'Alice Trần', modules:all,                          note:'Demo trial',   expires_at:calcExpiry('full6m'),    activated:true,  revoked:false, user_id:null, created_at:new Date().toISOString() },
-      { id:genId(), key_code:genKeyCode(), plan:'desktop1y', email:'bob@demo.io',   name:'Bob Nguyễn', modules:['analytics','reports','api'], note:'',            expires_at:calcExpiry('desktop1y'), activated:true,  revoked:false, user_id:null, created_at:new Date().toISOString() },
-      { id:genId(), key_code:genKeyCode(), plan:'full1y',    email:'',              name:'',           modules:all,                          note:'Chờ gán user', expires_at:calcExpiry('full1y'),    activated:false, revoked:false, user_id:null, created_at:new Date().toISOString() }
-    )
-    addLog('Khởi động: seed dữ liệu mẫu','info')
-    commit()
-  }
-})()
 
 const enrich = k => ({ ...k, status:keyStatus(k), daysLeft:daysLeft(k.expires_at) })
 
