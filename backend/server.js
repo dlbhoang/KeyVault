@@ -10,11 +10,25 @@ const { MODULES, KEY_PLANS, genKeyCode, genId, calcExpiry, keyStatus, daysLeft, 
 const app  = express()
 const PORT = process.env.PORT || 3001
 
-// CORS for local development
-app.use(cors({
-  origin: true, // Allow all origins for development
-  credentials: true
-}))
+// CORS handling
+// Allow the frontend to call this API from another origin (e.g., Vercel preview URLs).
+// Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of allowed origins (or leave empty to allow all).
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean)
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    return callback(new Error(`CORS policy does not allow access from origin ${origin}`))
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
 
 app.use(express.json())
 
