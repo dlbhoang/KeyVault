@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE = 'https://key-vault-ejs6q0ts0-dlbhoangs-projects.vercel.app/api'
+const BASE = 'https://key-vault-orpin.vercel.app/api'
 
 const api = axios.create({ baseURL: BASE })
 
