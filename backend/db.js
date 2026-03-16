@@ -2,10 +2,10 @@ const fs = require('fs')
 const path = require('path')
 
 // Detect environment - use SQLite locally, JSON on Vercel/serverless
-const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV || process.env.LAMBDA_TASK_ROOT || process.env.AWS_LAMBDA_FUNCTION_NAME
-const useSQLite = !isVercel
+const isServerless = process.env._HANDLER || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL || /\/var\/task\//.test(__dirname)
+const useSQLite = !isServerless
 
-console.log('Database environment:', { isVercel, useSQLite, VERCEL: process.env.VERCEL, VERCEL_ENV: process.env.VERCEL_ENV, LAMBDA_TASK_ROOT: process.env.LAMBDA_TASK_ROOT })
+console.log('Database environment:', { isServerless, useSQLite, dirname: __dirname, handler: process.env._HANDLER, lambda: process.env.AWS_LAMBDA_FUNCTION_NAME, vercel: process.env.VERCEL })
 
 if (useSQLite) {
   // SQLite implementation for local development
