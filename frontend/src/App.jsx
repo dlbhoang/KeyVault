@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from './store/index.js'
 import Landing from './pages/Landing.jsx'
@@ -6,103 +7,88 @@ import { AdminLogin, UserLogin, UserRegister, ForgotPassword, ResetPassword } fr
 import AdminLayout from './pages/AdminLayout.jsx'
 import UserPortal from './pages/UserPortal.jsx'
 
-export default function App() {
+const transition = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit:    { opacity: 0, y: -12 },
+  transition: { duration: .2 }
+}
+
+function Wrap({ children }) {
+  return (
+    <motion.div {...transition} style={{ minHeight: '100vh' }}>
+      {children}
+    </motion.div>
+  )
+}
+
+// Guard: chưa login → về /login hoặc /admin/login
+function PrivateRoute({ children, requiredRole }) {
+  const { role, token } = useAuthStore()
+  if (!token) {
+    return <Navigate to={requiredRole === 'admin' ? '/admin/login' : '/login'} replace />
+  }
+  if (requiredRole && role !== requiredRole) {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
+function AnimatedRoutes() {
+  const location = useLocation()
   const { role, token, init } = useAuthStore()
-  const [view, setView] = useState('landing')
-  const [resetToken, setResetToken] = useState('')
-  const [isAdminRoute, setIsAdminRoute] = useState(false)
 
-  useEffect(() => {
-    const path = window.location.pathname
-
-    if (path === '/admin' || path.startsWith('/admin/')) {
-      setIsAdminRoute(true)
-      setView('adminLogin')
-      return
-    }
-
-    init().then(() => {
-      const r = localStorage.getItem('kv_role')
-      if (r === 'admin') setView('adminPanel')
-      else if (r === 'user') setView('userPortal')
-    })
-  }, [])
-
-  useEffect(() => {
-    if (isAdminRoute) return
-
-    if (!token) {
-      setView('landing')
-      return
-    }
-
-    if (role === 'admin') setView('adminPanel')
-    else if (role === 'user') setView('userPortal')
-  }, [role, token, isAdminRoute])
-
-  const go = (v, extra) => {
-    if (extra?.resetToken) setResetToken(extra.resetToken)
-    setView(v)
-  }
-
-  const transition = {
-    initial: { opacity:0, y:12 },
-    animate: { opacity:1, y:0 },
-    exit: { opacity:0, y:-12 },
-    transition: { duration:.2 }
-  }
+  useEffect(() => { init() }, [])
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div key={view} {...transition} style={{ minHeight:'100vh' }}>
+      <Routes location={location} key={location.pathname}>
 
-        {view === 'landing' && (
-          <Landing
-            onUserLogin={()=>go('userLogin')}
-            onUserRegister={()=>go('userRegister')}
-          />
-        )}
+        {/* Trang chủ */}
+        <Route path="/" element={
+          token
+            ? <Navigate to={role === 'admin' ? '/admin' : '/portal'} replace />
+            : <Wrap><Landing /></Wrap>
+        }/>
 
-        {view === 'adminLogin' && (
-          <AdminLogin
-            onSuccess={()=>go('adminPanel')}
-            onBack={()=>go('landing')}
-          />
-        )}
+        {/* Auth pages */}
+        <Route path="/login"            element={<Wrap><UserLogin /></Wrap>} />
+        <Route path="/register"         element={<Wrap><UserRegister /></Wrap>} />
+        <Route path="/forgot-password"  element={<Wrap><ForgotPassword /></Wrap>} />
+        <Route path="/reset-password/:token" element={<Wrap><ResetPassword /></Wrap>} />
 
-        {view === 'userLogin' && (
-          <UserLogin
-            onSuccess={()=>go('userPortal')}
-            onRegister={()=>go('userRegister')}
-            onForgot={()=>go('forgotPassword')}
-            onBack={()=>go('landing')}
-          />
-        )}
+        {/* Admin login — PHẢI đặt TRƯỚC /admin/* */}
+        <Route path="/admin/login" element={
+          token && role === 'admin'
+            ? <Navigate to="/admin" replace />
+            : <Wrap><AdminLogin /></Wrap>
+        }/>
 
-        {view === 'userRegister' && (
-          <UserRegister
-            onSuccess={()=>go('userPortal')}
-            onLogin={()=>go('userLogin')}
-            onBack={()=>go('landing')}
-          />
-        )}
+        {/* Admin panel — protected */}
+        <Route path="/admin/*" element={
+          <PrivateRoute requiredRole="admin">
+            <Wrap><AdminLayout /></Wrap>
+          </PrivateRoute>
+        }/>
 
-        {view === 'forgotPassword' && (
-          <ForgotPassword onBack={()=>go('userLogin')} />
-        )}
+        {/* User portal — protected */}
+        <Route path="/portal/*" element={
+          <PrivateRoute requiredRole="user">
+            <Wrap><UserPortal /></Wrap>
+          </PrivateRoute>
+        }/>
 
-        {view === 'resetPassword' && (
-          <ResetPassword
-            token={resetToken}
-            onSuccess={()=>go('userLogin')}
-            onBack={()=>go('userLogin')}
-          />
-        )}
+        <Route path="*" element={<Navigate to="/" replace />} />
 
-        {view === 'adminPanel' && <AdminLayout />}
-        {view === 'userPortal' && <UserPortal />}
-
-      </motion.div>
+      </Routes>
     </AnimatePresence>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AnimatedRoutes />
+    </BrowserRouter>
   )
 }

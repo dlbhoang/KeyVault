@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE = 'https://key-vault-nine.vercel.app/api'
+const BASE ='http://localhost:3001/api';
 
 const api = axios.create({ baseURL: BASE })
 

@@ -84,6 +84,12 @@
   ],
   "logs": [
     {
+      "id": "1773646635136",
+      "message": "Admin \"admin\" đăng nhập",
+      "type": "info",
+      "created_at": "2026-03-16T07:37:15.136Z"
+    },
+    {
       "id": "1773605505670",
       "message": "Admin thu hồi key KV-BWGKZ5-0WZ0…",
       "type": "warn",
