@@ -123,9 +123,10 @@ export const useAuthStore = create((set, get) => ({
 }))
 
 // ── USER STORE ────────────────────────────────────────────────────────────
-export const useUserStore = create((set) => ({
-  keys:    [],
-  loading: false,
+export const useUserStore = create((set, get) => ({
+  keys:       [],
+  loading:    false,
+  downloadId: null,
 
   loadMe: async () => {
     set({ loading: true })
@@ -142,10 +143,13 @@ export const useUserStore = create((set) => ({
     set(s => ({
       keys: s.keys.find(k => k.id === data.key.id)
         ? s.keys.map(k => k.id === data.key.id ? data.key : k)
-        : [...s.keys, data.key]
+        : [...s.keys, data.key],
+      downloadId: data.key.id
     }))
     return data.key
   },
+
+  clearDownloadUrl: () => set({ downloadId: null }),
 }))
 
 // ── ADMIN STORE ───────────────────────────────────────────────────────────

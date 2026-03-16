@@ -4,10 +4,11 @@ import { format } from 'date-fns'
 import { LogOut, KeyRound, CheckCircle2, Copy, Check, Plus, RefreshCw } from 'lucide-react'
 import { Btn, Card, Tag, ModuleChips, Spinner, useToast, Toaster, Input, Field } from '../components/ui.jsx'
 import { useAuthStore, useUserStore, MODULES, KEY_PLANS } from '../store/index.js'
+import { userApi } from '../utils/api.js'
 
 export default function UserPortal() {
   const { user, logout } = useAuthStore()
-  const { keys, loading, loadMe, activateKey } = useUserStore()
+  const { keys, loading, loadMe, activateKey, downloadId, clearDownloadUrl } = useUserStore()
   const { list, toast, remove } = useToast()
   const [activating, setActivating] = useState(false)
   const [keyCode, setKeyCode] = useState('')
@@ -18,6 +19,7 @@ export default function UserPortal() {
 
   const handleActivate = async () => {
     if (!keyCode.trim()) { toast('Nhập license key!', 'error'); return }
+    clearDownloadUrl()
     setActivating(true)
     try {
       const k = await activateKey(keyCode.trim().toUpperCase())
@@ -29,10 +31,25 @@ export default function UserPortal() {
     setActivating(false)
   }
 
-  const copyKey = (code) => {
-    navigator.clipboard?.writeText(code)
-    setCopied(code); setTimeout(() => setCopied(''), 2000)
-    toast('Đã copy key!')
+  const downloadZip = async (id) => {
+    try {
+      const response = await fetch(userApi.downloadZipUrl(id), {
+        headers: { Authorization: `Bearer ${localStorage.getItem('kv_token')}` }
+      })
+      if (!response.ok) throw new Error('Download failed')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `KeyVault-${id.slice(0,8)}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast('📦 Đã tải xuống ZIP!')
+    } catch (e) {
+      toast('Lỗi tải xuống: ' + e.message, 'error')
+    }
   }
 
   const formatInput = (v) => {
@@ -40,6 +57,17 @@ export default function UserPortal() {
     const parts = ['KV']
     for (let i = 0; i < clean.length && parts.length < 5; i += 6) parts.push(clean.slice(i, i + 6))
     return parts.join('-')
+  }
+
+  const copyKey = async (keyCode) => {
+    try {
+      await navigator.clipboard.writeText(keyCode)
+      setCopied(keyCode)
+      toast('📋 Đã sao chép key!')
+      setTimeout(() => setCopied(''), 2000)
+    } catch (e) {
+      toast('Không thể sao chép', 'error')
+    }
   }
 
   return (
@@ -78,6 +106,15 @@ export default function UserPortal() {
             </Btn>
           </div>
 
+          {downloadId && (
+            <div style={{ marginBottom:16, padding:'12px 16px', background:'var(--emerald-l)', border:'1px solid var(--emerald)', borderRadius:10 }}>
+              <div style={{ fontWeight:600, color:'var(--emerald-d)', marginBottom:8 }}>🎉 Kích hoạt thành công!</div>
+              <Btn variant="primary" size="sm" onClick={() => downloadZip(downloadId)}>
+                📦 Tải xuống ZIP
+              </Btn>
+            </div>
+          )}
+
           <AnimatePresence>
             {showActivate && (
               <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:'auto'}} exit={{opacity:0,height:0}}>
@@ -111,7 +148,7 @@ export default function UserPortal() {
           </motion.div>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            {keys.map((k, i) => <KeyCard key={k.id} k={k} i={i} onCopy={copyKey} copied={copied} />)}
+            {keys.map((k, i) => <KeyCard key={k.id} k={k} i={i} onCopy={copyKey} onDownload={downloadZip} copied={copied} />)}
           </div>
         )}
 
@@ -125,7 +162,7 @@ export default function UserPortal() {
   )
 }
 
-function KeyCard({ k, i, onCopy, copied }) {
+function KeyCard({ k, i, onCopy, onDownload, copied }) {
   const dl   = k.daysLeft ?? 0
   const plan = KEY_PLANS[k.plan]
   const pct  = Math.max(0, Math.min(100, Math.round(dl / (plan?.days || 365) * 100)))
@@ -176,11 +213,18 @@ function KeyCard({ k, i, onCopy, copied }) {
         )}
 
         {/* Modules */}
-        <div>
+        <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:11, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>
             Modules ({k.modules?.length}/{MODULES.length})
           </div>
           <ModuleChips selected={k.modules || []} readOnly />
+        </div>
+
+        {/* Actions */}
+        <div style={{ display:'flex', gap:8 }}>
+          <Btn variant="outline" size="sm" onClick={() => onDownload(k.id)}>
+            📦 Tải ZIP
+          </Btn>
         </div>
       </div>
     </motion.div>

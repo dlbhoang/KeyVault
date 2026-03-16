@@ -67,9 +67,22 @@ app.post('/api/auth/login', (req,res) => {
 })
 
 app.get('/api/auth/me', requireUser, (req,res) => {
-  const u=db().users.find(x=>x.id===req.user.userId)
+  const d = db()
+  const u = d.users.find(x=>x.id===req.user.userId)
   if (!u) return res.status(404).json({error:'Không tìm thấy user'})
-  const keys=db().keys.filter(k=>k.user_id===u.id).map(enrich)
+
+  // Auto-assign pending keys with matching email
+  const pendingKeys = d.keys.filter(k => k.email === u.email && !k.user_id && !k.revoked)
+  pendingKeys.forEach(k => {
+    const idx = d.keys.findIndex(x => x.id === k.id)
+    d.keys[idx] = { ...k, user_id: u.id, activated: true }
+  })
+  if (pendingKeys.length > 0) {
+    commit()
+    addLog(`Tự động gán ${pendingKeys.length} key cho user "${u.email}"`, 'info')
+  }
+
+  const keys = d.keys.filter(k=>k.user_id===u.id).map(enrich)
   res.json({ user:{id:u.id,name:u.name,email:u.email,created_at:u.created_at}, keys })
 })
 
@@ -111,11 +124,12 @@ app.post('/api/keys/activate', requireUser, (req,res) => {
   if (k.revoked) return res.status(400).json({error:'Key đã bị thu hồi'})
   if (daysLeft(k.expires_at)<=0) return res.status(400).json({error:'Key đã hết hạn'})
   if (k.user_id&&k.user_id!==req.user.userId) return res.status(400).json({error:'Key này đã gán cho tài khoản khác'})
+  if (k.activated && k.user_id === req.user.userId) return res.status(400).json({error:'Key đã được kích hoạt rồi', key: enrich(k), downloadUrl: `/api/user/keys/${k.id}/download`})
   const idx=d.keys.findIndex(x=>x.id===k.id)
   d.keys[idx]={...k,activated:true,user_id:req.user.userId,email:req.user.email,name:req.user.name}
   commit()
   addLog(`User "${req.user.email}" kích hoạt key ${code.slice(0,14)}…`,'success')
-  res.json({key:enrich(d.keys[idx])})
+  res.json({key:enrich(d.keys[idx]), downloadUrl: `/api/user/keys/${k.id}/download`})
 })
 
 // ─── ADMIN KEYS ────────────────────────────────────────────────────────────
@@ -126,7 +140,16 @@ app.post('/api/admin/keys', requireAdmin, (req,res) => {
   if (!plan||!modules?.length) return res.status(400).json({error:'Thiếu thông tin'})
   const d=db(); const created=[]
   for(let i=0;i<Math.min(count,50);i++){
-    const k={id:genId(),key_code:genKeyCode(),plan,email:email||'',name:name||'',modules,note:note||'',expires_at:calcExpiry(plan,customDate),activated:!!email,revoked:false,user_id:null,created_at:new Date().toISOString()}
+    let user_id = null
+    let activated = !!email
+    if (email) {
+      const user = d.users.find(u => u.email === email.toLowerCase().trim())
+      if (user) {
+        user_id = user.id
+        activated = true
+      }
+    }
+    const k={id:genId(),key_code:genKeyCode(),plan,email:email||'',name:name||'',modules,note:note||'',expires_at:calcExpiry(plan,customDate),activated,revoked:false,user_id,created_at:new Date().toISOString()}
     d.keys.push(k); created.push(enrich(k))
   }
   commit()
@@ -153,6 +176,15 @@ app.delete('/api/admin/keys/:id', requireAdmin, (req,res) => {
 app.get('/api/admin/keys/:id/download', requireAdmin, async (req,res) => {
   const k=db().keys.find(x=>x.id===req.params.id)
   if (!k) return res.status(404).json({error:'Không tìm thấy key'})
+  const buf=await buildZip(k)
+  res.set({'Content-Type':'application/zip','Content-Disposition':`attachment; filename="KeyVault-${k.key_code.slice(0,8)}.zip"`,'Content-Length':buf.length})
+  res.send(buf)
+})
+
+// ─── USER DOWNLOAD ─────────────────────────────────────────────────────────
+app.get('/api/user/keys/:id/download', requireUser, async (req,res) => {
+  const k=db().keys.find(x=>x.id===req.params.id && x.user_id===req.user.userId)
+  if (!k) return res.status(404).json({error:'Không tìm thấy key hoặc không có quyền'})
   const buf=await buildZip(k)
   res.set({'Content-Type':'application/zip','Content-Disposition':`attachment; filename="KeyVault-${k.key_code.slice(0,8)}.zip"`,'Content-Length':buf.length})
   res.send(buf)

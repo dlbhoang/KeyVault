@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE ='http://localhost:3001/api';
+const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? 'http://localhost:3001/api' : 'https://key-vault-nine.vercel.app/api')
 
 const api = axios.create({ baseURL: BASE })
 
@@ -33,6 +33,7 @@ export const authApi = {
 // ── USER KEYS ─────────────────────────────────────────────────────────────
 export const userApi = {
   activate: (keyCode) => api.post('/keys/activate', { keyCode }).then(r => r.data),
+  downloadZipUrl: (id) => `${BASE}/user/keys/${id}/download`,
 }
 
 // ── ADMIN ─────────────────────────────────────────────────────────────────

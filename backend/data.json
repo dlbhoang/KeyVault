@@ -14,6 +14,13 @@
       "email": "admin@email.com",
       "password": "$2a$10$WpUljd8Ru0ylmhJRySFlRugIYaFllKrXrgh3AJb4Roo.07CZdZWC.",
       "created_at": "2026-03-15T20:11:05.683Z"
+    },
+    {
+      "id": "cd1c1503-b83a-4800-b285-4c33fc480e38",
+      "name": "Đặng lê Bảo Hoàng",
+      "email": "dlb.hoang0603@gmail.com",
+      "password": "$2a$10$AuBsXtA41cbVwJFJNd4odOVmkglEL0hRuoDEmIhAAMCsB.upKDngq",
+      "created_at": "2026-03-16T07:48:04.895Z"
     }
   ],
   "keys": [
@@ -80,9 +87,62 @@
       "revoked": true,
       "user_id": null,
       "created_at": "2026-03-15T20:10:21.955Z"
+    },
+    {
+      "id": "57e65114-f381-47e2-8546-a2955eb683fa",
+      "key_code": "KV-BIYDJP-I8GFT6-X5I583-CLVNAD",
+      "plan": "full6m",
+      "email": "admin@email.com",
+      "name": "",
+      "modules": [
+        "analytics",
+        "reports",
+        "crm",
+        "inventory",
+        "hr",
+        "finance",
+        "ai",
+        "api"
+      ],
+      "note": "",
+      "expires_at": "2026-09-14T14:46:54+07:00",
+      "activated": true,
+      "revoked": false,
+      "user_id": null,
+      "created_at": "2026-03-16T07:46:54.941Z"
     }
   ],
   "logs": [
+    {
+      "id": "1773647506983",
+      "message": "Admin \"admin\" đăng nhập",
+      "type": "info",
+      "created_at": "2026-03-16T07:51:46.983Z"
+    },
+    {
+      "id": "1773647336839",
+      "message": "User \"dlb.hoang0603@gmail.com\" đăng nhập",
+      "type": "info",
+      "created_at": "2026-03-16T07:48:56.839Z"
+    },
+    {
+      "id": "1773647284896",
+      "message": "User mới đăng ký: dlb.hoang0603@gmail.com",
+      "type": "success",
+      "created_at": "2026-03-16T07:48:04.896Z"
+    },
+    {
+      "id": "1773647214943",
+      "message": "Admin tạo 1 key [full6m] cho admin@email.com",
+      "type": "success",
+      "created_at": "2026-03-16T07:46:54.943Z"
+    },
+    {
+      "id": "1773647151207",
+      "message": "Admin \"admin\" đăng nhập",
+      "type": "info",
+      "created_at": "2026-03-16T07:45:51.207Z"
+    },
     {
       "id": "1773646635136",
       "message": "Admin \"admin\" đăng nhập",
