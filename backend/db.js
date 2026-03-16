@@ -5,8 +5,6 @@ const path = require('path')
 const isServerless = process.env._HANDLER || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL || /\/var\/task\//.test(__dirname)
 const useSQLite = !isServerless
 
-console.log('Database environment:', { isServerless, useSQLite, dirname: __dirname, handler: process.env._HANDLER, lambda: process.env.AWS_LAMBDA_FUNCTION_NAME, vercel: process.env.VERCEL })
-
 if (useSQLite) {
   // SQLite implementation for local development
   const Database = require('better-sqlite3')
