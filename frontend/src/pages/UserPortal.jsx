@@ -33,11 +33,41 @@ export default function UserPortal() {
 
   const downloadZip = async (id) => {
     try {
+      const token = localStorage.getItem('kv_token')
+      if (!token) {
+        toast('Vui lòng đăng nhập lại', 'error')
+        return
+      }
+      
       const response = await fetch(userApi.downloadZipUrl(id), {
-        headers: { Authorization: `Bearer ${localStorage.getItem('kv_token')}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Accept': 'application/zip'
+        }
       })
-      if (!response.ok) throw new Error('Download failed')
+      
+      if (response.status === 401) {
+        toast('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại', 'error')
+        logout()
+        return
+      }
+      
+      if (response.status === 404) {
+        toast('Không tìm thấy key hoặc bạn không có quyền truy cập', 'error')
+        return
+      }
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({error: 'Download failed'}))
+        throw new Error(errData.error || `Lỗi ${response.status}`)
+      }
+      
       const blob = await response.blob()
+      if (blob.size === 0) {
+        toast('Lỗi: File tải về rỗng', 'error')
+        return
+      }
+      
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -48,7 +78,8 @@ export default function UserPortal() {
       window.URL.revokeObjectURL(url)
       toast('📦 Đã tải xuống ZIP!')
     } catch (e) {
-      toast('Lỗi tải xuống: ' + e.message, 'error')
+      const errorMsg = e.message?.includes('fetch') ? 'Lỗi kết nối. Kiểm tra lại API server.' : e.message
+      toast(`❌ ${errorMsg}`, 'error')
     }
   }
 

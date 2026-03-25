@@ -1,8 +1,29 @@
 import axios from 'axios'
 
-const BASE = 'https://key-vault-orpin.vercel.app/api'
+// Determine API base URL
+const getBaseURL = () => {
+  // If running on Vercel or specified in import.meta.env
+  if (import.meta.env.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE
+  }
+  
+  // Local development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3001/api'
+  }
+  
+  // Production - assume API at same domain
+  return `${window.location.origin}/api`
+}
 
-const api = axios.create({ baseURL: BASE })
+const BASE = getBaseURL()
+
+const api = axios.create({ 
+  baseURL: BASE,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
 
 // Attach token automatically
 api.interceptors.request.use(cfg => {
@@ -15,7 +36,22 @@ api.interceptors.request.use(cfg => {
 api.interceptors.response.use(
   r => r,
   err => {
-    const msg = err.response?.data?.error || err.message || 'Lỗi không xác định'
+    console.error('API Error:', {
+      status: err.response?.status,
+      statusText: err.response?.statusText,
+      data: err.response?.data,
+      message: err.message
+    })
+    
+    let msg = 'Lỗi không xác định'
+    if (err.response?.data?.error) {
+      msg = err.response.data.error
+    } else if (err.response?.statusText) {
+      msg = `Lỗi ${err.response.status}: ${err.response.statusText}`
+    } else if (err.message) {
+      msg = err.message
+    }
+    
     return Promise.reject(new Error(msg))
   }
 )

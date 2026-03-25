@@ -8,14 +8,43 @@
 ```bash
 cd backend
 npm install
+
+# Copy .env.example → .env và điều chỉnh
+cp .env.example .env
+
 node server.js
 # → API: http://localhost:3001
 # → Admin: admin / admin123
 ```
 
+**Cấu hình .env:**
+```
+JWT_SECRET=your-super-secret-key-here-min-32-chars  # ⚠️ PHẢI ĐỔI trong production
+ADMIN_PASSWORD=admin123
+PORT=3001
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+MONGODB_URI=                                         # (tùy chọn)
+```
+
+**Database Options:**
+- **MongoDB**: Đặt `MONGODB_URI=...` để dùng MongoDB
+- **SQLite** (nếu compile được): Tự động dùng `data.db`
+- **JSON Fallback** (mặc định): Lưu dữ liệu vào `data.json` (zero native deps)
+
 ### 2. Frontend
 - **Không cần cài:** Mở `frontend/standalone.html` trong Chrome/Edge  
-- **Dev mode:** `cd frontend && npm install && npm run dev`
+- **Dev mode:** 
+```bash
+cd frontend
+npm install
+npm run dev
+# → http://localhost:5173
+```
+
+**Cấu hình .env (tùy chọn):**
+```
+VITE_API_BASE=http://localhost:3001/api  # Để trống = auto-detect
+```
 
 ---
 
@@ -51,10 +80,23 @@ GET   /api/admin/stats
 GET   /api/admin/logs
 ```
 
-## Stack
+## 🔒 Security Notes
+
+- **JWT_SECRET**: ⚠️ PHẢI đặt `JWT_SECRET` khác trong `.env` production. Default fallback chỉ cho dev.
+- **Admin Password**: Đổi `admin123` → mật khẩu mạnh ở `.env`
+- **CORS**: Set `CORS_ALLOWED_ORIGINS` cho domains được phép
+- **Environment Variables**: Không commit `.env` (đã trong `.gitignore`)
+- **Input Validation**: Tất cả input được validate (email, plan, modules)
+- **Permission Check**: Admin-only endpoints, user chỉ truy cập keys của họ
+- **Error Handling**: Improved error messages cho client debugging
+
+## 📦 Stack
 Frontend: React 18, Vite, Framer Motion, Zustand, Axios, Lucide  
 Backend:  Express, bcryptjs, jsonwebtoken, JSZip, date-fns  
-DB: JSON file (data.json) — zero native deps  
+Database: 
+  - **MongoDB** (production) - via `MONGODB_URI` env var
+  - **SQLite** (optional) - via `better-sqlite3` if available
+  - **JSON** (fallback) - pure JS, zero native deps, auto-used if SQLite fails
 Font: Plus Jakarta Sans + JetBrains Mono
 
 © 2025 KeyVault Software

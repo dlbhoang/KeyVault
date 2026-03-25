@@ -7,5 +7,10 @@
     { "src": "/api/(.*)", "dest": "backend/server.js" },
     { "src": "/admin(.*)", "dest": "/frontend/dist/index.html" },
     { "src": "/(.*)", "dest": "/frontend/dist/index.html" }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "JWT_SECRET": "@JWT_SECRET",
+    "CORS_ALLOWED_ORIGINS": "https://key-vault-orpin.vercel.app"
+  }
 }

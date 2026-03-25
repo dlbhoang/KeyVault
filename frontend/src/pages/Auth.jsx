@@ -47,21 +47,22 @@ export function AdminLogin() {
 
   useEffect(() => { clearError() }, [])
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e.preventDefault()
     if (await adminLogin(u, p)) navigate('/admin', { replace: true })
   }
 
   return (
     <AuthCard title="Đăng nhập Admin" subtitle="Truy cập bảng điều khiển quản trị" badge="ADMIN">
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <Field label="Tên đăng nhập" error={error && !p ? error : ''}>
-          <Input icon={<User size={15}/>} placeholder="Tên đăng nhập" value={u} onChange={e => setU(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} autoFocus />
+          <Input icon={<User size={15}/>} placeholder="Tên đăng nhập" value={u} onChange={e => setU(e.target.value)} autoFocus />
         </Field>
         <Field label="Mật khẩu" error={error}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={p} onChange={e => setP(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={p} onChange={e => setP(e.target.value)} />
         </Field>
 
-        <Btn variant="primary" onClick={submit} disabled={loading} full style={{ marginTop:4 }}>
+        <Btn variant="primary" type="submit" disabled={loading} full style={{ marginTop:4 }}>
           {loading ? <><Spinner size={16} color="#fff"/> Đang đăng nhập…</> : <><ShieldCheck size={15}/> Đăng nhập</>}
         </Btn>
 
@@ -72,10 +73,10 @@ export function AdminLogin() {
           password: <code style={{ fontFamily:'var(--f-mono)', color:'var(--indigo-d)', background:'var(--indigo-l)', padding:'1px 5px', borderRadius:4 }}>admin123</code>
         </div>
 
-        <button onClick={() => navigate('/')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center', marginTop:4 }}>
+        <button type="button" onClick={() => navigate('/')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center', marginTop:4 }}>
           <ArrowLeft size={13}/> Quay lại trang chủ
         </button>
-      </div>
+      </form>
     </AuthCard>
   )
 }
@@ -89,41 +90,42 @@ export function UserLogin() {
 
   useEffect(() => { clearError() }, [])
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e.preventDefault()
     if (await login(email, pass)) navigate('/portal', { replace: true })
   }
 
   return (
     <AuthCard title="Đăng nhập" subtitle="Đăng nhập để xem và quản lý license key của bạn">
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <Field label="Email" error={''}>
-          <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} autoFocus />
+          <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
         </Field>
         <Field label="Mật khẩu" error={error}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} />
         </Field>
 
         <div style={{ textAlign:'right', marginTop:-6 }}>
-          <button onClick={() => navigate('/forgot-password')} style={{ background:'none', border:'none', color:'var(--indigo)', fontSize:12, cursor:'pointer', fontWeight:600 }}>
+          <button type="button" onClick={() => navigate('/forgot-password')} style={{ background:'none', border:'none', color:'var(--indigo)', fontSize:12, cursor:'pointer', fontWeight:600 }}>
             Quên mật khẩu?
           </button>
         </div>
 
-        <Btn variant="primary" onClick={submit} disabled={loading} full>
+        <Btn variant="primary" type="submit" disabled={loading} full>
           {loading ? <><Spinner size={16} color="#fff"/> Đang đăng nhập…</> : 'Đăng nhập'}
         </Btn>
 
         <div style={{ textAlign:'center', fontSize:13, color:'var(--t3)', marginTop:4 }}>
           Chưa có tài khoản?{' '}
-          <button onClick={() => navigate('/register')} style={{ background:'none', border:'none', color:'var(--indigo)', fontWeight:700, cursor:'pointer', fontSize:13 }}>
+          <button type="button" onClick={() => navigate('/register')} style={{ background:'none', border:'none', color:'var(--indigo)', fontWeight:700, cursor:'pointer', fontSize:13 }}>
             Đăng ký ngay
           </button>
         </div>
 
-        <button onClick={() => navigate('/')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
+        <button type="button" onClick={() => navigate('/')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
           <ArrowLeft size={12}/> Về trang chủ
         </button>
-      </div>
+      </form>
     </AuthCard>
   )
 }
@@ -140,7 +142,8 @@ export function UserRegister() {
 
   useEffect(() => { clearError() }, [])
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e.preventDefault()
     setLocalErr('')
     if (!name.trim() || !email.trim() || !pass) { setLocalErr('Vui lòng nhập đầy đủ thông tin'); return }
     if (pass !== pass2) { setLocalErr('Mật khẩu xác nhận không khớp'); return }
@@ -151,7 +154,7 @@ export function UserRegister() {
 
   return (
     <AuthCard title="Tạo tài khoản" subtitle="Đăng ký để nhận và kích hoạt license key">
-      <div style={{ display:'flex', flexDirection:'column', gap:13 }}>
+      <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:13 }}>
         <Field label="Tên của bạn">
           <Input icon={<User size={15}/>} placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Field>
@@ -162,24 +165,24 @@ export function UserRegister() {
           <Input icon={<Lock size={15}/>} type="password" placeholder="Tối thiểu 6 ký tự" value={pass} onChange={e => setPass(e.target.value)} />
         </Field>
         <Field label="Xác nhận mật khẩu" error={err}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} />
         </Field>
 
-        <Btn variant="primary" onClick={submit} disabled={loading} full style={{ marginTop:2 }}>
+        <Btn variant="primary" type="submit" disabled={loading} full style={{ marginTop:2 }}>
           {loading ? <><Spinner size={16} color="#fff"/> Đang tạo tài khoản…</> : '🎉 Tạo tài khoản'}
         </Btn>
 
         <div style={{ textAlign:'center', fontSize:13, color:'var(--t3)' }}>
           Đã có tài khoản?{' '}
-          <button onClick={() => navigate('/login')} style={{ background:'none', border:'none', color:'var(--indigo)', fontWeight:700, cursor:'pointer', fontSize:13 }}>
+          <button type="button" onClick={() => navigate('/login')} style={{ background:'none', border:'none', color:'var(--indigo)', fontWeight:700, cursor:'pointer', fontSize:13 }}>
             Đăng nhập
           </button>
         </div>
 
-        <button onClick={() => navigate('/')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
+        <button type="button" onClick={() => navigate('/')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
           <ArrowLeft size={12}/> Về trang chủ
         </button>
-      </div>
+      </form>
     </AuthCard>
   )
 }
@@ -193,7 +196,8 @@ export function ForgotPassword() {
 
   useEffect(() => { clearError() }, [])
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e.preventDefault()
     const r = await forgotPassword(email)
     if (r) setResult(r)
   }
@@ -216,17 +220,17 @@ export function ForgotPassword() {
           </Btn>
         </motion.div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <Field label="Email đã đăng ký" error={error}>
-            <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} autoFocus />
+            <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
           </Field>
-          <Btn variant="primary" onClick={submit} disabled={loading} full>
+          <Btn variant="primary" type="submit" disabled={loading} full>
             {loading ? <><Spinner size={16} color="#fff"/> Đang gửi…</> : '📧 Gửi link đặt lại'}
           </Btn>
-          <button onClick={() => navigate('/login')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
+          <button type="button" onClick={() => navigate('/login')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
             <ArrowLeft size={13}/> Quay lại đăng nhập
           </button>
-        </div>
+        </form>
       )}
     </AuthCard>
   )
@@ -243,27 +247,28 @@ export function ResetPassword() {
 
   useEffect(() => { clearError() }, [])
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e.preventDefault()
     if (pass !== pass2) { setLocalErr('Mật khẩu không khớp'); return }
     if (await resetPassword(token, pass)) navigate('/login', { replace: true })
   }
 
   return (
     <AuthCard title="Đặt lại mật khẩu" subtitle="Nhập mật khẩu mới cho tài khoản của bạn">
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <Field label="Mật khẩu mới">
           <Input icon={<Lock size={15}/>} type="password" placeholder="Tối thiểu 6 ký tự" value={pass} onChange={e => setPass(e.target.value)} autoFocus />
         </Field>
         <Field label="Xác nhận mật khẩu" error={localErr || error}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} />
         </Field>
-        <Btn variant="primary" onClick={submit} disabled={loading} full>
+        <Btn variant="primary" type="submit" disabled={loading} full>
           {loading ? <><Spinner size={16} color="#fff"/> Đang đặt lại…</> : '✅ Đặt lại mật khẩu'}
         </Btn>
-        <button onClick={() => navigate('/login')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
+        <button type="button" onClick={() => navigate('/login')} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
           <ArrowLeft size={13}/> Quay lại
         </button>
-      </div>
+      </form>
     </AuthCard>
   )
 }

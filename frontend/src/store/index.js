@@ -133,7 +133,11 @@ export const useUserStore = create((set, get) => ({
     try {
       const data = await authApi.me()
       set({ keys: data.keys, loading: false })
-    } catch {
+    } catch (e) {
+      // If 401, user session expired
+      if (e.message?.includes('401')) {
+        get().logout()
+      }
       set({ loading: false })
     }
   },

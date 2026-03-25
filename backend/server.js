@@ -36,12 +36,17 @@ app.use(express.json())
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`)
   if (req.method === 'POST' || req.method === 'PUT') {
-    console.log('  body:', req.body)
+    console.log('  body:', JSON.stringify(req.body).slice(0, 200))
   }
   next()
 })
 
 const enrich = k => ({ ...k, status:keyStatus(k), daysLeft:daysLeft(k.expires_at) })
+
+// Validation helpers
+const validatePlan = (plan) => Object.keys(KEY_PLANS).includes(plan)
+const validateModules = (modules) => Array.isArray(modules) && modules.length > 0 && modules.every(m => MODULES.some(mod => mod.id === m))
+const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 // Health check endpoint for CORS testing
 app.get('/api/health', (req, res) => {
@@ -50,44 +55,79 @@ app.get('/api/health', (req, res) => {
 
 // ─── AUTH ──────────────────────────────────────────────────────────────────
 app.post('/api/auth/admin/login', async (req,res) => {
-  const {username,password}=req.body||{}
-  if (!username||!password) return res.status(400).json({error:'Thiếu thông tin đăng nhập'})
-  const data = await db()
-  const a=data.admins.find(x=>x.username===username)
-  if (!a||!bcrypt.compareSync(password,a.password)) return res.status(401).json({error:'Sai tên đăng nhập hoặc mật khẩu'})
-  addLog(`Admin "${username}" đăng nhập`,'info')
-  res.json({ token:sign({role:'admin',username:a.username,id:a.id}), user:{username:a.username,role:'admin'} })
+  try {
+    const {username,password}=req.body||{}
+    if (!username||!password) return res.status(400).json({error:'Thiếu thông tin đăng nhập'})
+    
+    const trimmedUser = String(username).trim()
+    const trimmedPass = String(password).trim()
+    
+    if (!trimmedUser || !trimmedPass) return res.status(400).json({error:'Tên và mật khẩu không được để trống'})
+    
+    const data = await db()
+    const a=data.admins.find(x=>x.username===trimmedUser)
+    if (!a||!bcrypt.compareSync(trimmedPass,a.password)) return res.status(401).json({error:'Sai tên đăng nhập hoặc mật khẩu'})
+    addLog(`Admin "${trimmedUser}" đăng nhập`,'info')
+    res.json({ token:sign({role:'admin',username:a.username,id:a.id}), user:{username:a.username,role:'admin'} })
+  } catch (e) {
+    console.error('Admin login error:', e)
+    res.status(500).json({error:'Lỗi máy chủ: ' + e.message})
+  }
 })
 
 app.post('/api/auth/register', async (req,res) => {
-  const {name,email,password}=req.body||{}
-  if (!name||!email||!password) return res.status(400).json({error:'Vui lòng nhập đầy đủ thông tin'})
-  if (password.length<6) return res.status(400).json({error:'Mật khẩu tối thiểu 6 ký tự'})
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({error:'Email không hợp lệ'})
-  const d = await db()
-  if (d.users.find(u=>u.email===email.toLowerCase())) return res.status(409).json({error:'Email đã được đăng ký'})
-  const u={id:genId(),name:name.trim(),email:email.toLowerCase().trim(),password:bcrypt.hashSync(password,10),created_at:new Date().toISOString()}
-  
-  if (useMongoDB) {
-    const user = new User(u)
-    await user.save()
-  } else {
-    d.users.push(u)
-    await commit(d)
+  try {
+    const {name,email,password}=req.body||{}
+    if (!name||!email||!password) return res.status(400).json({error:'Vui lòng nhập đầy đủ thông tin'})
+    if (password.length<6) return res.status(400).json({error:'Mật khẩu tối thiểu 6 ký tự'})
+    
+    const trimmedEmail = String(email).toLowerCase().trim()
+    const trimmedName = String(name).trim()
+    const trimmedPass = String(password).trim()
+    
+    if (!trimmedEmail || !trimmedName || !trimmedPass) return res.status(400).json({error:'Thông tin không hợp lệ'})
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) return res.status(400).json({error:'Email không hợp lệ'})
+    
+    const d = await db()
+    if (d.users.find(u=>u.email===trimmedEmail)) return res.status(409).json({error:'Email đã được đăng ký'})
+    
+    const u={id:genId(),name:trimmedName,email:trimmedEmail,password:bcrypt.hashSync(trimmedPass,10),created_at:new Date().toISOString()}
+    
+    if (useMongoDB) {
+      const user = new User(u)
+      await user.save()
+    } else {
+      d.users.push(u)
+      await commit(d)
+    }
+    
+    addLog(`User mới đăng ký: ${trimmedEmail}`,'success')
+    res.status(201).json({ token:sign({role:'user',userId:u.id,email:u.email,name:u.name}), user:{id:u.id,name:u.name,email:u.email} })
+  } catch (e) {
+    console.error('Register error:', e)
+    res.status(500).json({error:'Lỗi máy chủ: ' + e.message})
   }
-  
-  addLog(`User mới đăng ký: ${email}`,'success')
-  res.status(201).json({ token:sign({role:'user',userId:u.id,email:u.email,name:u.name}), user:{id:u.id,name:u.name,email:u.email} })
 })
 
 app.post('/api/auth/login', async (req,res) => {
-  const {email,password}=req.body||{}
-  if (!email||!password) return res.status(400).json({error:'Vui lòng nhập đầy đủ thông tin'})
-  const data = await db()
-  const u=data.users.find(x=>x.email===email.toLowerCase().trim())
-  if (!u||!bcrypt.compareSync(password,u.password)) return res.status(401).json({error:'Email hoặc mật khẩu không đúng'})
-  addLog(`User "${email}" đăng nhập`,'info')
-  res.json({ token:sign({role:'user',userId:u.id,email:u.email,name:u.name}), user:{id:u.id,name:u.name,email:u.email} })
+  try {
+    const {email,password}=req.body||{}
+    if (!email||!password) return res.status(400).json({error:'Vui lòng nhập đầy đủ thông tin'})
+    
+    const trimmedEmail = String(email).toLowerCase().trim()
+    const trimmedPass = String(password).trim()
+    
+    if (!trimmedEmail || !trimmedPass) return res.status(400).json({error:'Email và mật khẩu không được để trống'})
+    
+    const data = await db()
+    const u=data.users.find(x=>x.email===trimmedEmail)
+    if (!u||!bcrypt.compareSync(trimmedPass,u.password)) return res.status(401).json({error:'Email hoặc mật khẩu không đúng'})
+    addLog(`User "${trimmedEmail}" đăng nhập`,'info')
+    res.json({ token:sign({role:'user',userId:u.id,email:u.email,name:u.name}), user:{id:u.id,name:u.name,email:u.email} })
+  } catch (e) {
+    console.error('Login error:', e)
+    res.status(500).json({error:'Lỗi máy chủ: ' + e.message})
+  }
 })
 
 app.get('/api/auth/me', requireUser, async (req,res) => {
@@ -120,6 +160,7 @@ app.get('/api/auth/me', requireUser, async (req,res) => {
 
 app.post('/api/auth/forgot-password', async (req,res) => {
   const {email}=req.body||{}
+  if (!email || !validateEmail(email)) return res.status(400).json({error:'Email không hợp lệ'})
   const data = await db()
   const u=data.users.find(x=>x.email===(email||'').toLowerCase().trim())
   if (!u) return res.status(404).json({error:'Email không tồn tại trong hệ thống'})
@@ -177,8 +218,16 @@ app.get('/api/admin/keys', requireAdmin, async (_,res) => {
 
 app.post('/api/admin/keys', requireAdmin, async (req,res) => {
   const {plan,email,name,modules,note,customDate,count=1}=req.body||{}
+  
+  // Validation
   if (!plan||!modules?.length) return res.status(400).json({error:'Thiếu thông tin'})
-  const d = await db(); const created=[]
+  if (!validatePlan(plan)) return res.status(400).json({error:'Gói không hợp lệ'})
+  if (!validateModules(modules)) return res.status(400).json({error:'Modules không hợp lệ'})
+  if (email && !validateEmail(email)) return res.status(400).json({error:'Email không hợp lệ'})
+  if (count < 1 || count > 50) return res.status(400).json({error:'Số lượng phải từ 1-50'})
+  
+  const d = await db(); 
+  const created=[]
   for(let i=0;i<Math.min(count,50);i++){
     let user_id = null
     let activated = !!email
@@ -251,13 +300,23 @@ app.get('/api/user/keys/:id/download', requireUser, async (req,res) => {
 // ─── ADMIN USERS ───────────────────────────────────────────────────────────
 app.get('/api/admin/users', requireAdmin, async (_,res) => {
   const d = await db()
-  res.json(d.users.map(u=>({id:u.id,name:u.name,email:u.email,createdAt:u.created_at,key:d.keys.find(k=>k.user_id===u.id)?enrich(d.keys.find(k=>k.user_id===u.id)):null})))
+  // Build key map to avoid O(n²) lookup
+  const keyMap = {}
+  d.keys.forEach(k => {
+    if (k.user_id && !keyMap[k.user_id]) keyMap[k.user_id] = k
+  })
+  res.json(d.users.map(u=>({id:u.id,name:u.name,email:u.email,createdAt:u.created_at,key:keyMap[u.id]?enrich(keyMap[u.id]):null})))
 })
 
 app.delete('/api/admin/users/:id', requireAdmin, async (req,res) => {
-  const d = await db(); const u=d.users.find(x=>x.id===req.params.id)
+  const d = await db(); 
+  const u=d.users.find(x=>x.id===req.params.id)
   if (!u) return res.status(404).json({error:'Không tìm thấy user'})
-  d.users=d.users.filter(x=>x.id!==req.params.id); await commit(d)
+  // Can't delete users with active keys
+  const hasActiveKey = d.keys.some(k => k.user_id === u.id && !k.revoked)
+  if (hasActiveKey) return res.status(400).json({error:'Không thể xóa user có key hoạt động. Vui lòng thu hồi key trước.'})
+  d.users=d.users.filter(x=>x.id!==req.params.id)
+  await commit(d)
   addLog(`Admin xóa user ${u.email}`,'warn')
   res.json({success:true})
 })
@@ -277,8 +336,16 @@ app.get('/api/admin/logs',    requireAdmin, async (_,res) => {
   const data = await db()
   res.json(data.logs)
 })
+
 app.delete('/api/admin/logs', requireAdmin, async (_,res) => {
-  await Log.deleteMany({})
+  if (useMongoDB) {
+    await Log.deleteMany({})
+  } else {
+    const d = await db()
+    d.logs = []
+    await commit(d)
+  }
+  addLog('Admin cleared logs', 'warn')
   res.json({success:true})
 })
 app.get('/api/health', async (_,res) => {

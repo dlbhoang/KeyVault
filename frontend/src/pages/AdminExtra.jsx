@@ -19,6 +19,40 @@ export function CreateKeyModal({ open, onClose, toast }) {
   const [busy, setBusy]         = useState(false)
   const [dlBusy, setDlBusy]     = useState('')
   const [created, setCreated]   = useState([])
+  const [users, setUsers]       = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [useCustomEmail, setUseCustomEmail] = useState(false)
+
+  React.useEffect(() => {
+    if (!open) return
+    const fetchUsers = async () => {
+      setLoadingUsers(true)
+      try {
+        const data = await adminApi.users()
+        setUsers(data || [])
+      } catch (e) {
+        console.warn('Lỗi tải danh sách người dùng:', e.message)
+        setUsers([])
+      }
+      setLoadingUsers(false)
+    }
+    fetchUsers()
+  }, [open])
+
+  const handleEmailChange = (e) => {
+    const val = e.target.value
+    if (val === '__custom__') {
+      setUseCustomEmail(true)
+      setEmail('')
+      setName('')
+    } else {
+      setUseCustomEmail(false)
+      setEmail(val)
+      // Auto-populate name from selected user
+      const selectedUser = users.find(u => u.email === val)
+      setName(selectedUser?.name || '')
+    }
+  }
 
   const changePlan = p => {
     setPlan(p)
@@ -52,7 +86,7 @@ export function CreateKeyModal({ open, onClose, toast }) {
 
   const downloadAll = async () => { for(const k of created){ await downloadZip(k); await new Promise(r=>setTimeout(r,350)) } }
 
-  const reset = () => { setPlan('full6m');setEmail('');setName('');setCount(1);setModules(MODULES.map(m=>m.id));setNote('');setCustomDate('');setCreated([]) }
+  const reset = () => { setPlan('full6m');setEmail('');setName('');setCount(1);setModules(MODULES.map(m=>m.id));setNote('');setCustomDate('');setCreated([]);setUseCustomEmail(false) }
 
   return (
     <Modal open={open} onClose={()=>{reset();onClose()}} title="🔑 Tạo License Key" subtitle="Tạo key và tải gói cài đặt ZIP" maxW={580}>
@@ -70,8 +104,21 @@ export function CreateKeyModal({ open, onClose, toast }) {
               </Field>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-              <Field label="Email người dùng"><Input value={email} onChange={e=>setEmail(e.target.value)} placeholder="user@example.com" type="email"/></Field>
-              <Field label="Tên người dùng"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nguyễn Văn A"/></Field>
+              <Field label="Email người dùng">
+                <Select value={useCustomEmail?'__custom__':email} onChange={handleEmailChange} style={{cursor:loadingUsers?'not-allowed':'pointer'}}>
+                  <option value="">{loadingUsers?'Đang tải...':'-- Chọn người dùng --'}</option>
+                  {users.length>0 && users.map((u,i)=><option key={i} value={u.email}>{u.email} {u.name?`(${u.name})`:''}</option>)}
+                  {users.length>0 && <option disabled style={{color:'var(--t3)'}}>─────────────────</option>}
+                  <option value="__custom__">+ Nhập email khác</option>
+                </Select>
+              </Field>
+              {useCustomEmail ? (
+                <Field label="Email tùy chỉnh">
+                  <Input type="email" placeholder="user@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+                </Field>
+              ) : (
+                <Field label="Tên người dùng"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nguyễn Văn A"/></Field>
+              )}
             </div>
             {plan==='custom' && <Field label="Ngày hết hạn"><Input type="date" value={customDate} onChange={e=>setCustomDate(e.target.value)}/></Field>}
             <Field label={`Modules (${modules.length}/${MODULES.length} đã chọn)`}>
