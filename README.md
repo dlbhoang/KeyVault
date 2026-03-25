@@ -22,7 +22,7 @@ node server.js
 JWT_SECRET=your-super-secret-key-here-min-32-chars  # ⚠️ PHẢI ĐỔI trong production
 ADMIN_PASSWORD=admin123
 PORT=3001
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+CORS_ALLOWED_ORIGINS=http://localhost:5173,https://key-vault-3gkb.vercel.app,https://key-vault-dy4k.vercel.app
 MONGODB_URI=                                         # (tùy chọn)
 ```
 

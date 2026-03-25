@@ -56,10 +56,10 @@ export function AdminLogin() {
     <AuthCard title="Đăng nhập Admin" subtitle="Truy cập bảng điều khiển quản trị" badge="ADMIN">
       <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <Field label="Tên đăng nhập" error={error && !p ? error : ''}>
-          <Input icon={<User size={15}/>} placeholder="Tên đăng nhập" value={u} onChange={e => setU(e.target.value)} autoFocus />
+          <Input icon={<User size={15}/>} placeholder="Tên đăng nhập" value={u} onChange={e => setU(e.target.value)} autoFocus autoComplete="username" />
         </Field>
         <Field label="Mật khẩu" error={error}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={p} onChange={e => setP(e.target.value)} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={p} onChange={e => setP(e.target.value)} autoComplete="current-password" />
         </Field>
 
         <Btn variant="primary" type="submit" disabled={loading} full style={{ marginTop:4 }}>
@@ -99,10 +99,10 @@ export function UserLogin() {
     <AuthCard title="Đăng nhập" subtitle="Đăng nhập để xem và quản lý license key của bạn">
       <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <Field label="Email" error={''}>
-          <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+          <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus autoComplete="email" />
         </Field>
         <Field label="Mật khẩu" error={error}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} autoComplete="current-password" />
         </Field>
 
         <div style={{ textAlign:'right', marginTop:-6 }}>
@@ -156,16 +156,16 @@ export function UserRegister() {
     <AuthCard title="Tạo tài khoản" subtitle="Đăng ký để nhận và kích hoạt license key">
       <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:13 }}>
         <Field label="Tên của bạn">
-          <Input icon={<User size={15}/>} placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} autoFocus />
+          <Input icon={<User size={15}/>} placeholder="Nguyễn Văn A" value={name} onChange={e => setName(e.target.value)} autoFocus autoComplete="name" />
         </Field>
         <Field label="Email">
-          <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+          <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
         </Field>
         <Field label="Mật khẩu">
-          <Input icon={<Lock size={15}/>} type="password" placeholder="Tối thiểu 6 ký tự" value={pass} onChange={e => setPass(e.target.value)} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="Tối thiểu 6 ký tự" value={pass} onChange={e => setPass(e.target.value)} autoComplete="new-password" />
         </Field>
         <Field label="Xác nhận mật khẩu" error={err}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} autoComplete="new-password" />
         </Field>
 
         <Btn variant="primary" type="submit" disabled={loading} full style={{ marginTop:2 }}>
@@ -222,7 +222,7 @@ export function ForgotPassword() {
       ) : (
         <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <Field label="Email đã đăng ký" error={error}>
-            <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+            <Input icon={<Mail size={15}/>} type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus autoComplete="email" />
           </Field>
           <Btn variant="primary" type="submit" disabled={loading} full>
             {loading ? <><Spinner size={16} color="#fff"/> Đang gửi…</> : '📧 Gửi link đặt lại'}
@@ -257,10 +257,10 @@ export function ResetPassword() {
     <AuthCard title="Đặt lại mật khẩu" subtitle="Nhập mật khẩu mới cho tài khoản của bạn">
       <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <Field label="Mật khẩu mới">
-          <Input icon={<Lock size={15}/>} type="password" placeholder="Tối thiểu 6 ký tự" value={pass} onChange={e => setPass(e.target.value)} autoFocus />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="Tối thiểu 6 ký tự" value={pass} onChange={e => setPass(e.target.value)} autoFocus autoComplete="new-password" />
         </Field>
         <Field label="Xác nhận mật khẩu" error={localErr || error}>
-          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} />
+          <Input icon={<Lock size={15}/>} type="password" placeholder="Nhập lại mật khẩu" value={pass2} onChange={e => setPass2(e.target.value)} autoComplete="new-password" />
         </Field>
         <Btn variant="primary" type="submit" disabled={loading} full>
           {loading ? <><Spinner size={16} color="#fff"/> Đang đặt lại…</> : '✅ Đặt lại mật khẩu'}
