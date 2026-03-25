@@ -152,7 +152,7 @@ function initJsonFallback() {
   const DATA_FILE = getDataFilePath()
   if (!fs.existsSync(DATA_FILE)) {
     const seedData = {
-      admins:
+      admins: [
         { id: 'admin-1', username: 'admin', password: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10), created_at: new Date().toISOString() }
       ],
       users: [],
