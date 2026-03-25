@@ -5,6 +5,20 @@ const { genId, genKeyCode, calcExpiry, MODULES } = require('./keyUtils')
 
 const useMongoDB = !!process.env.MONGODB_URI
 
+const TEMP_DATA_PATH = process.env.DATA_FILE || path.join(process.env.TMPDIR || '/tmp', 'keyvault-data.json')
+const LOCAL_DATA_PATH = path.join(__dirname, 'data.json')
+
+const getDataFilePath = () => {
+  // Use explicit override if set; otherwise prefer /tmp for serverless writable filesystem.
+  if (process.env.DATA_FILE) return process.env.DATA_FILE
+  try {
+    fs.accessSync(path.dirname(TEMP_DATA_PATH), fs.constants.W_OK)
+    return TEMP_DATA_PATH
+  } catch (err) {
+    return LOCAL_DATA_PATH
+  }
+}
+
 // ---------- MongoDB (optional) ----------
 let mongoose, Admin, User, Key, Log, ResetToken
 
@@ -135,10 +149,10 @@ function initSqlite() {
 }
 
 function initJsonFallback() {
-  const DATA_FILE = path.join(__dirname, 'data.json')
+  const DATA_FILE = getDataFilePath()
   if (!fs.existsSync(DATA_FILE)) {
     const seedData = {
-      admins: [
+      admins:
         { id: 'admin-1', username: 'admin', password: bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10), created_at: new Date().toISOString() }
       ],
       users: [],
@@ -178,7 +192,7 @@ function loadSqlite() {
       resetTokens: sqliteDb.prepare('SELECT * FROM reset_tokens').all()
     }
   } else {
-    const DATA_FILE = path.join(__dirname, 'data.json')
+    const DATA_FILE = getDataFilePath()
     const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
     sqliteCache = data
   }
@@ -215,7 +229,7 @@ function commitSqlite() {
     transaction()
   } else {
     // JSON fallback
-    const DATA_FILE = path.join(__dirname, 'data.json')
+    const DATA_FILE = getDataFilePath()
     fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2))
   }
 }
