@@ -91,4 +91,48 @@ export const healthApi = {
   check: () => api.get('/health').then(r => r.data),
 }
 
+// ── MODULE LIVE UPDATE ──────────────────────────────────────────────────────
+export const moduleApi = {
+  /**
+   * Get current versions of all modules
+   */
+  getVersions: () => api.get('/modules/versions').then(r => r.data),
+  
+  /**
+   * Check which modules have updates available
+   * @param {object} desktopVersions - {analytics: '1.0.0', reports: '1.1.0', ...}
+   */
+  checkUpdates: (desktopVersions) => 
+    api.post('/modules/check-updates', { desktopVersions }).then(r => r.data),
+  
+  /**
+   * Download specific module version
+   * @param {string} moduleId - e.g., 'analytics'
+   * @param {string} version - e.g., '1.2.0'
+   */
+  downloadModule: (moduleId, version) => {
+    const url = `${BASE}/modules/${moduleId}/download?version=${version}`
+    return url
+  },
+}
+
+// ── ADMIN MODULE MANAGEMENT ────────────────────────────────────────────────
+export const adminModuleApi = {
+  /**
+   * Get download history (admin only)
+   * @param {string} moduleId - Optional, filter by module
+   * @param {number} limit - Number of records to return
+   */
+  getHistory: (moduleId = null, limit = 100) => {
+    const params = { limit }
+    if (moduleId) params.moduleId = moduleId
+    return api.get('/admin/modules/history', { params }).then(r => r.data)
+  },
+  
+  /**
+   * Get report of which users need which module updates
+   */
+  getUsersUpdates: () => api.get('/admin/modules/users-updates').then(r => r.data),
+}
+
 export default api

@@ -6,6 +6,7 @@ const crypto  = require('crypto')
 const { db, commit, addLog, Log, User, useMongoDB, Key } = require('./db')
 const { sign, requireAdmin, requireUser } = require('./auth')
 const { MODULES, KEY_PLANS, genKeyCode, genId, calcExpiry, keyStatus, daysLeft, buildZip } = require('./keyUtils')
+const { getModuleVersion, getAllModulesVersions, checkUpdates, logModuleDownload, getModuleFile, getModuleDownloadHistory } = require('./modules')
 
 const app  = express()
 const PORT = process.env.PORT || 3001
@@ -362,9 +363,195 @@ app.get('/api/health', async (_,res) => {
   })
 })
 
+// ─── MODULE LIVE UPDATE SYSTEM ────────────────────────────────────────────
+/**
+ * GET /api/modules/versions
+ * Get current version of all modules (for desktop app to check)
+ */
+app.get('/api/modules/versions', async (req, res) => {
+  const versions = getAllModulesVersions()
+  res.json({
+    timestamp: new Date().toISOString(),
+    modules: versions
+  })
+})
+
+/**
+ * POST /api/modules/check-updates
+ * Check which modules have updates available
+ * Body: { desktopVersions: {analytics: '1.0.0', reports: '1.0.0', ...} }
+ */
+app.post('/api/modules/check-updates', requireUser, async (req, res) => {
+  try {
+    const { desktopVersions = {} } = req.body || {}
+    
+    // Get user's keys to find their modules
+    const data = await db()
+    const userKeys = data.keys.filter(k => k.user_id === req.user.userId && !k.revoked && daysLeft(k.expires_at) > 0)
+    
+    // Collect all modules user has access to
+    const userModules = new Set()
+    userKeys.forEach(k => {
+      if (Array.isArray(k.modules)) {
+        k.modules.forEach(modId => userModules.add(modId))
+      }
+    })
+    
+    // Check for updates
+    const updates = checkUpdates(Array.from(userModules), desktopVersions)
+    
+    // Log the check
+    addLog(`User ${req.user.email} checked module updates. Found ${updates.length} available.`, 'info')
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      updates,
+      totalAvailable: updates.length,
+      userModules: Array.from(userModules),
+    })
+  } catch (e) {
+    console.error('Check updates error:', e)
+    res.status(500).json({ error: 'Lỗi kiểm tra cập nhật: ' + e.message })
+  }
+})
+
+/**
+ * GET /api/modules/:moduleId/download?version=1.2.0
+ * Download specific module version (validates key access)
+ */
+app.get('/api/modules/:moduleId/download', requireUser, async (req, res) => {
+  try {
+    const { moduleId } = req.params
+    const { version } = req.query
+    
+    // Validate module exists
+    const moduleInfo = MODULES.find(m => m.id === moduleId)
+    if (!moduleInfo) {
+      return res.status(404).json({ error: 'Module không tồn tại' })
+    }
+    
+    // Check user has license for this module
+    const data = await db()
+    const userKeys = data.keys.filter(k => 
+      k.user_id === req.user.userId && 
+      !k.revoked && 
+      daysLeft(k.expires_at) > 0 &&
+      Array.isArray(k.modules) &&
+      k.modules.includes(moduleId)
+    )
+    
+    if (userKeys.length === 0) {
+      addLog(`User ${req.user.email} attempted unauthorized download of module ${moduleId}`, 'warn')
+      return res.status(403).json({ error: 'Bạn không có quyền truy cập module này' })
+    }
+    
+    // Get the module file
+    const moduleFile = getModuleFile(moduleId, version)
+    if (!moduleFile) {
+      return res.status(404).json({ error: 'Phiên bản module không tồn tại' })
+    }
+    
+    // Log download
+    logModuleDownload(moduleId, moduleFile.version, req.user, 'user-download')
+    addLog(`User ${req.user.email} downloaded module ${moduleId} v${moduleFile.version}`, 'info')
+    
+    // Send file
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${moduleFile.fileName}.zip"`,
+      'Content-Length': moduleFile.fileSize,
+      'X-Module-Version': moduleFile.version,
+      'X-Module-Hash': moduleFile.hash,
+    })
+    res.send(moduleFile.buffer)
+  } catch (e) {
+    console.error('Module download error:', e)
+    res.status(500).json({ error: 'Lỗi tải module: ' + e.message })
+  }
+})
+
+/**
+ * GET /api/admin/modules/history
+ * Get download history for all modules (admin only)
+ */
+app.get('/api/admin/modules/history', requireAdmin, async (req, res) => {
+  try {
+    const { moduleId, limit = 100 } = req.query
+    const history = getModuleDownloadHistory(moduleId, parseInt(limit))
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      total: history.length,
+      records: history
+    })
+  } catch (e) {
+    console.error('History error:', e)
+    res.status(500).json({ error: 'Lỗi lấy lịch sử: ' + e.message })
+  }
+})
+
+/**
+ * GET /api/admin/modules/users-updates
+ * For admin: see which users need which module updates
+ */
+app.get('/api/admin/modules/users-updates', requireAdmin, async (req, res) => {
+  try {
+    const data = await db()
+    const result = []
+    
+    // For each user with keys
+    const usersWithKeys = new Map()
+    data.keys.forEach(k => {
+      if (k.user_id && !k.revoked && daysLeft(k.expires_at) > 0) {
+        if (!usersWithKeys.has(k.user_id)) {
+          const user = data.users.find(u => u.id === k.user_id)
+          usersWithKeys.set(k.user_id, {
+            userId: k.user_id,
+            userEmail: user?.email || 'unknown',
+            userName: user?.name || 'unknown',
+            modules: new Set()
+          })
+        }
+        const userRecord = usersWithKeys.get(k.user_id)
+        if (Array.isArray(k.modules)) {
+          k.modules.forEach(m => userRecord.modules.add(m))
+        }
+      }
+    })
+    
+    // Convert to array and check updates for each user
+    usersWithKeys.forEach((userRecord, userId) => {
+      // Note: We don't know their desktop versions, so we assume all modules in their key are "new"
+      const updates = checkUpdates(Array.from(userRecord.modules), {})
+      result.push({
+        ...userRecord,
+        modules: Array.from(userRecord.modules),
+        availableUpdates: updates,
+        updateCount: updates.length
+      })
+    })
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      totalUsers: result.length,
+      usersNeedingUpdates: result.filter(r => r.updateCount > 0).length,
+      details: result.sort((a, b) => b.updateCount - a.updateCount)
+    })
+  } catch (e) {
+    console.error('Admin updates report error:', e)
+    res.status(500).json({ error: 'Lỗi báo cáo: ' + e.message })
+  }
+})
+
 app.listen(PORT, () => {
   console.log(`\n🔑  KeyVault API  →  http://localhost:${PORT}`)
   console.log(`    Admin: admin / admin123\n`)
+  console.log(`📦 Module Update System available at:`)
+  console.log(`    GET  /api/modules/versions`)
+  console.log(`    POST /api/modules/check-updates`)
+  console.log(`    GET  /api/modules/:moduleId/download`)
+  console.log(`    GET  /api/admin/modules/history`)
+  console.log(`    GET  /api/admin/modules/users-updates\n`)
 })
 
 module.exports = app
