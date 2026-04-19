@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Download, Trash2, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
-import { useAdminStore, MODULES, KEY_PLANS } from '../store/index.js'
+import { useAdminStore, KEY_PLANS } from '../store/index.js'
+import { keyModuleIds } from '../utils/keyModules.js'
 import { Btn, Tag, Modal, ModuleChips, useConfirm, Spinner } from '../components/ui.jsx'
 import { adminApi } from '../utils/api.js'
 
@@ -112,9 +113,8 @@ export default function AdminKeys({ onCreateKey, toast }) {
                         {k.email ? <><div style={{ fontSize:13, fontWeight:600, color:'var(--t1)' }}>{k.name||'—'}</div><div style={{ fontSize:11, color:'var(--t3)' }}>{k.email}</div></> : <span style={{ fontSize:12, color:'var(--t3)' }}>Chưa gán</span>}
                       </td>
                       <td style={{ padding:'11px 14px' }}>
-                        {k.modules?.length === MODULES.length
-                          ? <span style={{ fontSize:10, background:'var(--emerald-l)', color:'#059669', padding:'2px 8px', borderRadius:20, fontWeight:700 }}>Tất cả</span>
-                          : <span style={{ fontSize:12, color:'var(--t3)' }}>{k.modules?.length}/{MODULES.length}</span>}
+                        <span style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{keyModuleIds(k).length} module</span>
+                        <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>master + sub-keys</div>
                       </td>
                       <td style={{ padding:'11px 14px' }}>
                         <div style={{ fontSize:12, color:'var(--t1)' }}>{format(new Date(k.expires_at),'dd/MM/yyyy')}</div>
@@ -162,8 +162,8 @@ export default function AdminKeys({ onCreateKey, toast }) {
               ))}
             </div>
             <div>
-              <div style={{ fontSize:11, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:700 }}>Modules</div>
-              <ModuleChips selected={detail.modules||[]} readOnly />
+              <div style={{ fontSize:11, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:700 }}>Modules (sub-key mỗi module trong ZIP)</div>
+              <ModuleChips selected={keyModuleIds(detail)} readOnly />
             </div>
           </div>
         )}

@@ -1,19 +1,11 @@
 import axios from 'axios'
 
-// Determine API base URL
+// Cùng origin `/api`: dev (Vite) proxy → localhost:3001; production Express phục vụ API + SPA một cổng
 const getBaseURL = () => {
-  // If running on Vercel or specified in import.meta.env
   if (import.meta.env.VITE_API_BASE) {
     return import.meta.env.VITE_API_BASE
   }
-  
-  // Local development
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:3001/api'
-  }
-  
-  // Production - assume API at same domain
-  return `${window.location.origin}/api`
+  return '/api'
 }
 
 const BASE = getBaseURL()
@@ -36,12 +28,8 @@ api.interceptors.request.use(cfg => {
 api.interceptors.response.use(
   r => r,
   err => {
-    console.error('API Error:', {
-      status: err.response?.status,
-      statusText: err.response?.statusText,
-      data: err.response?.data,
-      message: err.message
-    })
+    const detail = err.response?.data?.error || err.response?.data?.message || err.message || err.code
+    console.error('API Error:', err.response?.status ?? 'no-response', detail, err.response?.data ?? '')
     
     let msg = 'Lỗi không xác định'
     if (err.response?.data?.error) {
@@ -100,14 +88,14 @@ export const moduleApi = {
   
   /**
    * Check which modules have updates available
-   * @param {object} desktopVersions - {analytics: '1.0.0', reports: '1.1.0', ...}
+   * @param {object} desktopVersions - {loading: '1.0.0', analysis: '1.1.0', ...}
    */
   checkUpdates: (desktopVersions) => 
     api.post('/modules/check-updates', { desktopVersions }).then(r => r.data),
   
   /**
    * Download specific module version
-   * @param {string} moduleId - e.g., 'analytics'
+   * @param {string} moduleId - e.g., 'steel'
    * @param {string} version - e.g., '1.2.0'
    */
   downloadModule: (moduleId, version) => {

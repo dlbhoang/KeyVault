@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Trash2, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
-import { useAdminStore, KEY_PLANS, MODULES } from '../store/index.js'
+import { useAdminStore, KEY_PLANS } from '../store/index.js'
+import { keyModuleIds } from '../utils/keyModules.js'
 import { Btn, Tag, Avatar, Spinner, useConfirm } from '../components/ui.jsx'
 
 export default function AdminUsers({ toast }) {
@@ -68,7 +69,7 @@ export default function AdminUsers({ toast }) {
                       {u.key ? (
                         <div>
                           <span style={{ fontSize:10, fontWeight:800, background:'var(--indigo-l)', color:'var(--indigo-d)', padding:'2px 8px', borderRadius:6, fontFamily:'var(--f-mono)' }}>{KEY_PLANS[u.key.plan]?.badge||u.key.plan}</span>
-                          <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>{u.key.modules?.length===MODULES.length?'Tất cả':`${u.key.modules?.length}/${MODULES.length}`} module</div>
+                          <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>{keyModuleIds(u.key).length} module</div>
                         </div>
                       ) : '—'}
                     </td>

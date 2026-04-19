@@ -2,14 +2,15 @@ import { create } from 'zustand'
 import { authApi, adminApi, userApi } from '../utils/api.js'
 
 export const MODULES = [
-  { id:'analytics', name:'Analytics',  icon:'📊', color:'#6366f1' },
-  { id:'reports',   name:'Reports',    icon:'📄', color:'#0ea5e9' },
-  { id:'crm',       name:'CRM',        icon:'🤝', color:'#10b981' },
-  { id:'inventory', name:'Inventory',  icon:'📦', color:'#f59e0b' },
-  { id:'hr',        name:'HR Manager', icon:'👔', color:'#ec4899' },
-  { id:'finance',   name:'Finance',    icon:'💰', color:'#ef4444' },
-  { id:'ai',        name:'AI Tools',   icon:'🤖', color:'#8b5cf6' },
-  { id:'api',       name:'API Access', icon:'🔌', color:'#14b8a6' },
+  { id:'loading',             name:'Loading',             groupCode:'A', icon:'⬇️', color:'#6366f1' },
+  { id:'analysis',            name:'Analysis',            groupCode:'B', icon:'📐', color:'#0ea5e9' },
+  { id:'reinforced_concrete', name:'Reinforced Concrete', groupCode:'C', icon:'🧱', color:'#78716c' },
+  { id:'steel',               name:'Steel',               groupCode:'D', icon:'🔩', color:'#64748b' },
+  { id:'composite',           name:'Composite',           groupCode:'E', icon:'🔗', color:'#8b5cf6' },
+  { id:'timber',              name:'Timber',              groupCode:'F', icon:'🪵', color:'#b45309' },
+  { id:'geotechnical',        name:'Geotechnical',        groupCode:'G', icon:'🌍', color:'#059669' },
+  { id:'connections',         name:'Connections',         groupCode:'H', icon:'⚙️', color:'#d97706' },
+  { id:'general',             name:'General',             groupCode:'I', icon:'📋', color:'#6b7280' },
 ]
 
 export const KEY_PLANS = {

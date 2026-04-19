@@ -27,10 +27,10 @@ export default function UserModuleUpdates() {
       // In real app: load installed versions from ~/.keyvault/modules/
       // For demo: use mock versions
       const mockVersions = {
-        analytics: '1.0.0',
-        reports: '1.0.0',
-        crm: '1.0.0',
-        inventory: '1.0.1',
+        loading: '1.0.0',
+        analysis: '1.0.0',
+        steel: '1.0.0',
+        general: '1.0.0',
       }
 
       const result = await moduleApi.checkUpdates(mockVersions)

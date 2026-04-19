@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { adminModuleApi } from '../../utils/api'
+import { MODULES } from '../store/index.js'
 
 /**
  * Module Updates Dashboard for Admin
@@ -38,17 +39,6 @@ export default function AdminModuleUpdates() {
       setLoading(false)
     }
   }
-
-  const MODULES = [
-    { id: 'analytics', name: 'Analytics', icon: '📊' },
-    { id: 'reports', name: 'Reports', icon: '📄' },
-    { id: 'crm', name: 'CRM', icon: '🤝' },
-    { id: 'inventory', name: 'Inventory', icon: '📦' },
-    { id: 'hr', name: 'HR Manager', icon: '👔' },
-    { id: 'finance', name: 'Finance', icon: '💰' },
-    { id: 'ai', name: 'AI Tools', icon: '🤖' },
-    { id: 'api', name: 'API Access', icon: '🔌' },
-  ]
 
   return (
     <div className="admin-module-updates">
@@ -105,7 +95,7 @@ export default function AdminModuleUpdates() {
               <div key={mod.id} className="module-card">
                 <div className="module-icon">{mod.icon}</div>
                 <div className="module-name">{mod.name}</div>
-                <small>{mod.id}</small>
+                <small>{mod.groupCode} · {mod.id}</small>
               </div>
             ))}
           </div>

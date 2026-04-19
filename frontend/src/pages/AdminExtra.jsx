@@ -13,7 +13,7 @@ export function CreateKeyModal({ open, onClose, toast }) {
   const [email, setEmail]       = useState('')
   const [name, setName]         = useState('')
   const [count, setCount]       = useState(1)
-  const [modules, setModules]   = useState(MODULES.map(m => m.id))
+  const [modules, setModules]   = useState(() => MODULES.map(m => m.id))
   const [note, setNote]         = useState('')
   const [customDate, setCustomDate] = useState('')
   const [busy, setBusy]         = useState(false)
@@ -121,18 +121,18 @@ export function CreateKeyModal({ open, onClose, toast }) {
               )}
             </div>
             {plan==='custom' && <Field label="Ngày hết hạn"><Input type="date" value={customDate} onChange={e=>setCustomDate(e.target.value)}/></Field>}
-            <Field label={`Modules (${modules.length}/${MODULES.length} đã chọn)`}>
+            <Field label={`Modules được cấp (${modules.length}/${MODULES.length}) — mỗi module có sub-key riêng trong ZIP`}>
               <div style={{background:'var(--surface2)',border:'1.5px solid var(--b1)',borderRadius:10,padding:'14px'}}>
                 <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:10}}>
-                  <button onClick={()=>setModules(MODULES.map(m=>m.id))} style={{fontSize:11,background:'var(--indigo-l)',color:'var(--indigo-d)',border:'none',borderRadius:6,padding:'3px 10px',cursor:'pointer',fontWeight:700}}>Tất cả</button>
-                  <button onClick={()=>setModules([])} style={{fontSize:11,background:'var(--surface3)',color:'var(--t3)',border:'1.5px solid var(--b1)',borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>Xóa hết</button>
+                  <button type="button" onClick={()=>setModules(MODULES.map(m=>m.id))} style={{fontSize:11,background:'var(--indigo-l)',color:'var(--indigo-d)',border:'none',borderRadius:6,padding:'3px 10px',cursor:'pointer',fontWeight:700}}>Tất cả</button>
+                  <button type="button" onClick={()=>setModules([])} style={{fontSize:11,background:'var(--surface3)',color:'var(--t3)',border:'1.5px solid var(--b1)',borderRadius:6,padding:'3px 10px',cursor:'pointer'}}>Xóa hết</button>
                 </div>
                 <ModuleChips selected={modules} onChange={setModules}/>
               </div>
             </Field>
             <Field label="Ghi chú nội bộ"><Input value={note} onChange={e=>setNote(e.target.value)} placeholder="Ghi chú cho key này…"/></Field>
             <div style={{background:'var(--sky-l)',border:'1.5px solid rgba(14,165,233,.2)',borderRadius:10,padding:'12px 14px',fontSize:12,color:'var(--t2)',lineHeight:1.8}}>
-              💡 Sau khi tạo, bạn có thể tải gói ZIP gồm <code style={{background:'rgba(14,165,233,.15)',padding:'1px 5px',borderRadius:4,fontFamily:'var(--f-mono)'}}>LICENSE.key</code> + <code style={{background:'rgba(14,165,233,.15)',padding:'1px 5px',borderRadius:4,fontFamily:'var(--f-mono)'}}>Setup.exe</code> để gửi cho người dùng.
+              💡 <strong>Master key</strong> (KV-…) gắn license; trong <code style={{background:'rgba(14,165,233,.15)',padding:'1px 5px',borderRadius:4,fontFamily:'var(--f-mono)'}}>config.json</code> có <strong>sub-key từng module</strong> (KV-SUB-…). App desktop kiểm tra module nào đã mở rồi mới cho dùng — người dùng có thể mở nhiều module trong cùng license.
             </div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:10}}>
               <Btn variant="ghost" onClick={()=>{reset();onClose()}}>Hủy</Btn>
@@ -152,7 +152,7 @@ export function CreateKeyModal({ open, onClose, toast }) {
                   style={{background:'var(--surface2)',border:'1.5px solid var(--b1)',borderRadius:12,padding:'13px 15px',display:'flex',alignItems:'center',gap:12}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontFamily:'var(--f-mono)',fontSize:11,color:'var(--indigo-d)',fontWeight:600,wordBreak:'break-all'}}>{k.key_code}</div>
-                    <div style={{fontSize:11,color:'var(--t3)',marginTop:3}}>{KEY_PLANS[k.plan]?.label} · {k.modules?.length} modules{k.email?` · ${k.email}`:''}</div>
+                    <div style={{fontSize:11,color:'var(--t3)',marginTop:3}}>{KEY_PLANS[k.plan]?.label} · {k.moduleIds?.length ?? k.modules?.length ?? 0} module (master + sub-keys){k.email?` · ${k.email}`:''}</div>
                   </div>
                   <Btn size="sm" variant="sky" onClick={()=>downloadZip(k)} disabled={dlBusy===k.id}>
                     {dlBusy===k.id?<Spinner size={13}/>:<Download size={12}/>} ZIP

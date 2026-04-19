@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { LogOut, KeyRound, CheckCircle2, Copy, Check, Plus, RefreshCw } from 'lucide-react'
 import { Btn, Card, Tag, ModuleChips, Spinner, useToast, Toaster, Input, Field } from '../components/ui.jsx'
-import { useAuthStore, useUserStore, MODULES, KEY_PLANS } from '../store/index.js'
+import { useAuthStore, useUserStore, KEY_PLANS } from '../store/index.js'
 import { userApi } from '../utils/api.js'
+import { keyModuleIds } from '../utils/keyModules.js'
 
 export default function UserPortal() {
   const { user, logout } = useAuthStore()
@@ -130,7 +131,7 @@ export default function UserPortal() {
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: showActivate?16:0 }}>
             <div>
               <div style={{ fontWeight:700, fontSize:15, color:'var(--t1)' }}>🔓 Kích hoạt License Key</div>
-              <div style={{ fontSize:13, color:'var(--t3)', marginTop:2 }}>Nhập key nhận từ Admin để mở khóa modules</div>
+              <div style={{ fontSize:13, color:'var(--t3)', marginTop:2 }}>Nhập <strong>master key</strong> (KV-…). Trong gói ZIP, mỗi module có <strong>sub-key</strong> riêng — app desktop kiểm tra module đã mở mới cho dùng (có thể mở nhiều module).</div>
             </div>
             <Btn variant="primary" size="sm" onClick={() => setShowActivate(!showActivate)}>
               <Plus size={13}/> {showActivate ? 'Đóng' : 'Nhập Key'}
@@ -243,12 +244,12 @@ function KeyCard({ k, i, onCopy, onDownload, copied }) {
           </div>
         )}
 
-        {/* Modules */}
+        {/* Modules trong license (mở từng cái bằng sub-key trên desktop) */}
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:11, fontWeight:700, color:'var(--t3)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>
-            Modules ({k.modules?.length}/{MODULES.length})
+            Modules được cấp ({keyModuleIds(k).length}) — chi tiết sub-key trong ZIP / config.json
           </div>
-          <ModuleChips selected={k.modules || []} readOnly />
+          <ModuleChips selected={keyModuleIds(k)} readOnly />
         </div>
 
         {/* Actions */}

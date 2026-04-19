@@ -1,7 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const bcrypt = require('bcryptjs')
-const { genId, genKeyCode, calcExpiry, MODULES } = require('./keyUtils')
+const { genId, genKeyCode, calcExpiry, MODULES, createModuleKeysRecord } = require('./keyUtils')
 
 const useMongoDB = !!process.env.MONGODB_URI
 
@@ -52,6 +52,7 @@ if (useMongoDB) {
     email: String,
     name: String,
     modules: [String],
+    module_keys: mongoose.Schema.Types.Mixed,
     note: String,
     expires_at: Date,
     activated: Boolean,
@@ -94,6 +95,18 @@ function initSqlite() {
     useSqlite = true
     console.log('✅ Using SQLite database')
 
+    if (!isNew) {
+      try {
+        const cols = sqliteDb.prepare('PRAGMA table_info(keys)').all()
+        if (!cols.find(c => c.name === 'module_keys')) {
+          sqliteDb.exec('ALTER TABLE keys ADD COLUMN module_keys TEXT')
+          console.log('✅ Migrated keys table: added module_keys')
+        }
+      } catch (e) {
+        console.warn('keys migration:', e.message)
+      }
+    }
+
     if (isNew) {
       sqliteDb.exec(`CREATE TABLE admins (
         id TEXT PRIMARY KEY,
@@ -117,6 +130,7 @@ function initSqlite() {
         email TEXT,
         name TEXT,
         modules TEXT,
+        module_keys TEXT,
         note TEXT,
         expires_at TEXT,
         activated INTEGER,
@@ -157,9 +171,9 @@ function initJsonFallback() {
       ],
       users: [],
       keys: [
-        { id: genId(), key_code: genKeyCode(), plan: 'full6m', email: 'alice@demo.vn', name: 'Alice Trần', modules: MODULES.map(m => m.id), note: 'Demo trial', expires_at: calcExpiry('full6m'), activated: true, revoked: false, user_id: null, created_at: new Date().toISOString() },
-        { id: genId(), key_code: genKeyCode(), plan: 'desktop1y', email: 'bob@demo.io', name: 'Bob Nguyễn', modules: ['analytics','reports','api'], note: '', expires_at: calcExpiry('desktop1y'), activated: true, revoked: false, user_id: null, created_at: new Date().toISOString() },
-        { id: genId(), key_code: genKeyCode(), plan: 'full1y', email: '', name: '', modules: MODULES.map(m => m.id), note: 'Chờ gán user', expires_at: calcExpiry('full1y'), activated: false, revoked: false, user_id: null, created_at: new Date().toISOString() }
+        (() => { const m = ['analysis', 'steel']; return { id: genId(), key_code: genKeyCode(), plan: 'full6m', email: 'alice@demo.vn', name: 'Alice Trần', modules: m, module_keys: createModuleKeysRecord(m), note: 'Demo — master + sub-key từng module', expires_at: calcExpiry('full6m'), activated: true, revoked: false, user_id: null, created_at: new Date().toISOString() } })(),
+        (() => { const m = ['steel']; return { id: genId(), key_code: genKeyCode(), plan: 'desktop1y', email: 'bob@demo.io', name: 'Bob Nguyễn', modules: m, module_keys: createModuleKeysRecord(m), note: '', expires_at: calcExpiry('desktop1y'), activated: true, revoked: false, user_id: null, created_at: new Date().toISOString() } })(),
+        (() => { const m = ['general']; return { id: genId(), key_code: genKeyCode(), plan: 'full1y', email: '', name: '', modules: m, module_keys: createModuleKeysRecord(m), note: 'Chờ gán user', expires_at: calcExpiry('full1y'), activated: false, revoked: false, user_id: null, created_at: new Date().toISOString() } })(),
       ],
       logs: [],
       resetTokens: []
@@ -173,11 +187,10 @@ function seedDatabase() {
   const adminPass = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10)
   sqliteDb.prepare('INSERT INTO admins VALUES (?, ?, ?, ?)').run('admin-1', 'admin', adminPass, new Date().toISOString())
 
-  const allMods = JSON.stringify(MODULES.map(m => m.id))
-  const insertKey = sqliteDb.prepare('INSERT INTO keys VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-  insertKey.run(genId(), genKeyCode(), 'full6m', 'alice@demo.vn', 'Alice Trần', allMods, 'Demo trial', calcExpiry('full6m'), 1, 0, null, new Date().toISOString())
-  insertKey.run(genId(), genKeyCode(), 'desktop1y', 'bob@demo.io', 'Bob Nguyễn', JSON.stringify(['analytics','reports','api']), '', calcExpiry('desktop1y'), 1, 0, null, new Date().toISOString())
-  insertKey.run(genId(), genKeyCode(), 'full1y', '', '', allMods, 'Chờ gán user', calcExpiry('full1y'), 0, 0, null, new Date().toISOString())
+  const insertKey = sqliteDb.prepare('INSERT INTO keys VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+  ;(() => { const m = ['analysis', 'steel']; insertKey.run(genId(), genKeyCode(), 'full6m', 'alice@demo.vn', 'Alice Trần', JSON.stringify(m), JSON.stringify(createModuleKeysRecord(m)), 'Demo — master + sub-key từng module', calcExpiry('full6m'), 1, 0, null, new Date().toISOString()) })()
+  ;(() => { const m = ['steel']; insertKey.run(genId(), genKeyCode(), 'desktop1y', 'bob@demo.io', 'Bob Nguyễn', JSON.stringify(m), JSON.stringify(createModuleKeysRecord(m)), '', calcExpiry('desktop1y'), 1, 0, null, new Date().toISOString()) })()
+  ;(() => { const m = ['general']; insertKey.run(genId(), genKeyCode(), 'full1y', '', '', JSON.stringify(m), JSON.stringify(createModuleKeysRecord(m)), 'Chờ gán user', calcExpiry('full1y'), 0, 0, null, new Date().toISOString()) })()
 }
 
 function loadSqlite() {
@@ -187,7 +200,13 @@ function loadSqlite() {
     sqliteCache = {
       admins: sqliteDb.prepare('SELECT * FROM admins').all(),
       users: sqliteDb.prepare('SELECT * FROM users').all(),
-      keys: sqliteDb.prepare('SELECT * FROM keys').all().map(k => ({ ...k, modules: JSON.parse(k.modules), activated: !!k.activated, revoked: !!k.revoked })),
+      keys: sqliteDb.prepare('SELECT * FROM keys').all().map(k => ({
+        ...k,
+        modules: JSON.parse(k.modules),
+        module_keys: k.module_keys ? JSON.parse(k.module_keys) : undefined,
+        activated: !!k.activated,
+        revoked: !!k.revoked,
+      })),
       logs: sqliteDb.prepare('SELECT * FROM logs ORDER BY created_at DESC').all(),
       resetTokens: sqliteDb.prepare('SELECT * FROM reset_tokens').all()
     }
@@ -215,8 +234,22 @@ function commitSqlite() {
       d.users.forEach(u => insertUser.run(u.id, u.name, u.email, u.password, u.created_at))
 
       sqliteDb.prepare('DELETE FROM keys').run()
-      const insertKey = sqliteDb.prepare('INSERT INTO keys VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      d.keys.forEach(k => insertKey.run(k.id, k.key_code, k.plan, k.email, k.name, JSON.stringify(k.modules), k.note, k.expires_at, k.activated ? 1 : 0, k.revoked ? 1 : 0, k.user_id, k.created_at))
+      const insertKey = sqliteDb.prepare('INSERT INTO keys VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      d.keys.forEach(k => insertKey.run(
+        k.id,
+        k.key_code,
+        k.plan,
+        k.email,
+        k.name,
+        JSON.stringify(k.modules),
+        k.module_keys ? JSON.stringify(k.module_keys) : null,
+        k.note,
+        k.expires_at,
+        k.activated ? 1 : 0,
+        k.revoked ? 1 : 0,
+        k.user_id,
+        k.created_at,
+      ))
 
       sqliteDb.prepare('DELETE FROM logs').run()
       const insertLog = sqliteDb.prepare('INSERT INTO logs VALUES (?, ?, ?, ?)')

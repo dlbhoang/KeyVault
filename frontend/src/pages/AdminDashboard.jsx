@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { useAdminStore, MODULES } from '../store/index.js'
+import { keyModuleIds } from '../utils/keyModules.js'
 import { StatCard, Btn } from '../components/ui.jsx'
 
 export default function Dashboard({ onCreateKey }) {
@@ -92,7 +93,7 @@ export default function Dashboard({ onCreateKey }) {
         <div style={{ fontWeight:700, fontSize:14, color:'var(--t1)', marginBottom:16 }}>🧩 Thống kê Modules</div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
           {MODULES.map(m => {
-            const cnt = keys.filter(k => k.modules?.includes(m.id) && !k.revoked).length
+            const cnt = keys.filter(k => !k.revoked && keyModuleIds(k).includes(m.id)).length
             const pct = keys.length ? (cnt/keys.length)*100 : 0
             return (
               <div key={m.id} style={{ background:'var(--surface2)', borderRadius:10, padding:'12px 14px', border:'1.5px solid var(--b1)' }}>

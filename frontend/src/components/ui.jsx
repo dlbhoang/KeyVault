@@ -193,7 +193,9 @@ export function ModuleChips({ selected, onChange, readOnly=false }) {
               borderColor: on ? `${m.color}44` : 'var(--b1)',
               color: on ? m.color : 'var(--t3)',
             }}>
-            <span>{m.icon}</span>{m.name}
+            <span>{m.icon}</span>
+            <span style={{ fontFamily:'var(--f-mono)', fontSize:11, opacity:0.85 }}>[{m.groupCode}]</span>
+            {m.name}
           </motion.button>
         )
       })}

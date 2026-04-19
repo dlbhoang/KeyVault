@@ -1,11 +1,12 @@
 require('dotenv').config()
+const path = require('path')
 const express = require('express')
 const cors = require('cors')
 const bcrypt  = require('bcryptjs')
 const crypto  = require('crypto')
 const { db, commit, addLog, Log, User, useMongoDB, Key } = require('./db')
 const { sign, requireAdmin, requireUser } = require('./auth')
-const { MODULES, KEY_PLANS, genKeyCode, genId, calcExpiry, keyStatus, daysLeft, buildZip } = require('./keyUtils')
+const { MODULES, KEY_PLANS, genKeyCode, genId, calcExpiry, keyStatus, daysLeft, buildZip, keyModuleIds, createModuleKeysRecord } = require('./keyUtils')
 const { getModuleVersion, getAllModulesVersions, checkUpdates, logModuleDownload, getModuleFile, getModuleDownloadHistory } = require('./modules')
 
 const app  = express()
@@ -41,11 +42,25 @@ app.use((req, res, next) => {
   next()
 })
 
-const enrich = k => ({ ...k, status:keyStatus(k), daysLeft:daysLeft(k.expires_at) })
+const enrich = k => ({ ...k, status:keyStatus(k), daysLeft:daysLeft(k.expires_at), moduleIds: keyModuleIds(k) })
 
 // Validation helpers
 const validatePlan = (plan) => Object.keys(KEY_PLANS).includes(plan)
-const validateModules = (modules) => Array.isArray(modules) && modules.length > 0 && modules.every(m => MODULES.some(mod => mod.id === m))
+const validateModuleId = (id) => typeof id === 'string' && MODULES.some(mod => mod.id === id)
+/** Ít nhất 1 module; không trùng id trong cùng một license (master + nhiều sub-key). */
+const validateModulesPayload = (modules) => {
+  if (!Array.isArray(modules) || modules.length < 1) return false
+  const uniq = [...new Set(modules.map(String))]
+  if (uniq.length !== modules.length) return false
+  return uniq.every(validateModuleId)
+}
+
+function parseModulesFromBody(body) {
+  const { module, modules } = body || {}
+  if (module != null && String(module).trim() !== '') return [String(module).trim()]
+  if (Array.isArray(modules) && modules.length) return modules.map(String)
+  return []
+}
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 // Health check endpoint for CORS testing
@@ -217,12 +232,12 @@ app.get('/api/admin/keys', requireAdmin, async (_,res) => {
 })
 
 app.post('/api/admin/keys', requireAdmin, async (req,res) => {
-  const {plan,email,name,modules,note,customDate,count=1}=req.body||{}
+  const {plan,email,name,note,customDate,count=1}=req.body||{}
+  const modules = parseModulesFromBody(req.body)
   
   // Validation
-  if (!plan||!modules?.length) return res.status(400).json({error:'Thiếu thông tin'})
+  if (!plan||!validateModulesPayload(modules)) return res.status(400).json({error:'Chọn ít nhất 1 module, không trùng lặp'})
   if (!validatePlan(plan)) return res.status(400).json({error:'Gói không hợp lệ'})
-  if (!validateModules(modules)) return res.status(400).json({error:'Modules không hợp lệ'})
   if (email && !validateEmail(email)) return res.status(400).json({error:'Email không hợp lệ'})
   if (count < 1 || count > 50) return res.status(400).json({error:'Số lượng phải từ 1-50'})
   
@@ -238,7 +253,9 @@ app.post('/api/admin/keys', requireAdmin, async (req,res) => {
         activated = true
       }
     }
-    const k={id:genId(),key_code:genKeyCode(),plan,email:email||'',name:name||'',modules,note:note||'',expires_at:calcExpiry(plan,customDate),activated,revoked:false,user_id,created_at:new Date().toISOString()}
+    const uniqMods = [...new Set(modules.map(String))]
+    const module_keys = createModuleKeysRecord(uniqMods)
+    const k={id:genId(),key_code:genKeyCode(),plan,email:email||'',name:name||'',modules:uniqMods,module_keys,note:note||'',expires_at:calcExpiry(plan,customDate),activated,revoked:false,user_id,created_at:new Date().toISOString()}
     if (useMongoDB) {
       const newKey = new Key(k)
       await newKey.save()
@@ -379,7 +396,7 @@ app.get('/api/modules/versions', async (req, res) => {
 /**
  * POST /api/modules/check-updates
  * Check which modules have updates available
- * Body: { desktopVersions: {analytics: '1.0.0', reports: '1.0.0', ...} }
+ * Body: { desktopVersions: {loading: '1.0.0', analysis: '1.0.0', ...} }
  */
 app.post('/api/modules/check-updates', requireUser, async (req, res) => {
   try {
@@ -392,9 +409,7 @@ app.post('/api/modules/check-updates', requireUser, async (req, res) => {
     // Collect all modules user has access to
     const userModules = new Set()
     userKeys.forEach(k => {
-      if (Array.isArray(k.modules)) {
-        k.modules.forEach(modId => userModules.add(modId))
-      }
+      keyModuleIds(k).forEach(modId => userModules.add(modId))
     })
     
     // Check for updates
@@ -436,8 +451,7 @@ app.get('/api/modules/:moduleId/download', requireUser, async (req, res) => {
       k.user_id === req.user.userId && 
       !k.revoked && 
       daysLeft(k.expires_at) > 0 &&
-      Array.isArray(k.modules) &&
-      k.modules.includes(moduleId)
+      keyModuleIds(k).includes(moduleId)
     )
     
     if (userKeys.length === 0) {
@@ -513,9 +527,7 @@ app.get('/api/admin/modules/users-updates', requireAdmin, async (req, res) => {
           })
         }
         const userRecord = usersWithKeys.get(k.user_id)
-        if (Array.isArray(k.modules)) {
-          k.modules.forEach(m => userRecord.modules.add(m))
-        }
+        keyModuleIds(k).forEach(m => userRecord.modules.add(m))
       }
     })
     
@@ -542,6 +554,16 @@ app.get('/api/admin/modules/users-updates', requireAdmin, async (req, res) => {
     res.status(500).json({ error: 'Lỗi báo cáo: ' + e.message })
   }
 })
+
+// Production: phục vụ SPA (Vite build) cùng origin với /api
+if (process.env.NODE_ENV === 'production') {
+  const dist = path.join(__dirname, '../frontend/dist')
+  app.use(express.static(dist))
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next()
+    res.sendFile(path.join(dist, 'index.html'), err => (err ? next(err) : null))
+  })
+}
 
 app.listen(PORT, () => {
   console.log(`\n🔑  KeyVault API  →  http://localhost:${PORT}`)

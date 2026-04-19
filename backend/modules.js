@@ -11,35 +11,34 @@ const { MODULES } = require('./keyUtils')
 
 // Module Update History (in-memory, extend with DB)
 const moduleVersions = {
-  analytics: [
-    { version: '1.0.0', releaseDate: '2026-01-01', hash: 'abc123...', fileSize: 1024000, changelog: 'Initial release' },
-    { version: '1.1.0', releaseDate: '2026-02-15', hash: 'def456...', fileSize: 1052000, changelog: 'Fixed charts, added export' },
-    { version: '1.2.0', releaseDate: '2026-04-10', hash: 'ghi789...', fileSize: 1080000, changelog: 'Performance optimization, new filters' },
+  loading: [
+    { version: '1.0.0', releaseDate: '2026-01-01', hash: 'ldg100...', fileSize: 980000, changelog: 'Initial release' },
   ],
-  reports: [
-    { version: '1.0.0', releaseDate: '2026-01-05', hash: 'jkl012...', fileSize: 892000, changelog: 'Initial release' },
-    { version: '1.1.0', releaseDate: '2026-03-20', hash: 'mno345...', fileSize: 920000, changelog: 'Added PDF export, custom templates' },
+  analysis: [
+    { version: '1.0.0', releaseDate: '2026-01-05', hash: 'anl100...', fileSize: 2100000, changelog: 'Initial release' },
+    { version: '1.1.0', releaseDate: '2026-03-20', hash: 'anl110...', fileSize: 2150000, changelog: 'Solver improvements' },
   ],
-  crm: [
-    { version: '1.0.0', releaseDate: '2026-01-10', hash: 'pqr678...', fileSize: 1544000, changelog: 'Initial release' },
+  reinforced_concrete: [
+    { version: '1.0.0', releaseDate: '2026-01-10', hash: 'rcc100...', fileSize: 3200000, changelog: 'Initial release' },
   ],
-  inventory: [
-    { version: '1.0.0', releaseDate: '2026-02-01', hash: 'stu901...', fileSize: 2048000, changelog: 'Initial release' },
-    { version: '1.0.1', releaseDate: '2026-04-05', hash: 'vwx234...', fileSize: 2076000, changelog: 'Bug fixes, barcode scanning' },
+  steel: [
+    { version: '1.0.0', releaseDate: '2026-01-12', hash: 'stl100...', fileSize: 2800000, changelog: 'Initial release' },
   ],
-  hr: [
-    { version: '1.0.0', releaseDate: '2026-01-15', hash: 'yza567...', fileSize: 1240000, changelog: 'Initial release' },
+  composite: [
+    { version: '1.0.0', releaseDate: '2026-02-01', hash: 'cmp100...', fileSize: 1900000, changelog: 'Initial release' },
   ],
-  finance: [
-    { version: '1.0.0', releaseDate: '2026-01-20', hash: 'bcd890...', fileSize: 1808000, changelog: 'Initial release' },
-    { version: '1.1.0', releaseDate: '2026-03-30', hash: 'efg123...', fileSize: 1856000, changelog: 'New tax calculations, audit trail' },
+  timber: [
+    { version: '1.0.0', releaseDate: '2026-02-08', hash: 'tmb100...', fileSize: 1650000, changelog: 'Initial release' },
   ],
-  ai: [
-    { version: '1.0.0', releaseDate: '2026-02-10', hash: 'hij456...', fileSize: 3144000, changelog: 'Initial release - AI models' },
+  geotechnical: [
+    { version: '1.0.0', releaseDate: '2026-01-18', hash: 'geo100...', fileSize: 2400000, changelog: 'Initial release' },
   ],
-  api: [
-    { version: '1.0.0', releaseDate: '2026-01-25', hash: 'klm789...', fileSize: 512000, changelog: 'Initial API SDK' },
-    { version: '1.1.0', releaseDate: '2026-04-08', hash: 'nop012...', fileSize: 540000, changelog: 'Added webhooks, improved docs' },
+  connections: [
+    { version: '1.0.0', releaseDate: '2026-01-22', hash: 'con100...', fileSize: 1400000, changelog: 'Initial release' },
+  ],
+  general: [
+    { version: '1.0.0', releaseDate: '2026-01-25', hash: 'gen100...', fileSize: 890000, changelog: 'Initial release' },
+    { version: '1.0.1', releaseDate: '2026-04-08', hash: 'gen101...', fileSize: 905000, changelog: 'Bug fixes' },
   ],
 }
 
@@ -72,6 +71,7 @@ function getAllModulesVersions() {
     if (versions && versions.length > 0) {
       result[mod.id] = {
         name: mod.name,
+        groupCode: mod.groupCode,
         currentVersion: versions[versions.length - 1].version,
         lastUpdated: versions[versions.length - 1].releaseDate,
         hash: versions[versions.length - 1].hash,
@@ -118,7 +118,7 @@ function getModuleDownloadHistory(moduleId = null, limit = 100) {
 /**
  * Check what modules need updates
  * @param {array} userModules - Module IDs user has license for
- * @param {object} desktopVersions - Current versions on user's desktop {analytics: '1.0.0', ...}
+ * @param {object} desktopVersions - Current versions on user's desktop {loading: '1.0.0', ...}
  * @returns {array} - Modules with available updates
  */
 function checkUpdates(userModules, desktopVersions = {}) {
@@ -169,9 +169,8 @@ function getModuleFile(moduleId, version) {
   const versions = moduleVersions[moduleId]
   if (!versions) return null
   
-  const moduleData = versions.find(v => v.version === version)
+  let moduleData = versions.find(v => v.version === version)
   if (!moduleData) {
-    // Return latest version if specific version not found
     moduleData = versions[versions.length - 1]
   }
   
